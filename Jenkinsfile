@@ -212,11 +212,27 @@ pipeline {
 
   post {
     always {
+      sh '''
+        set +e
+        merged_dir="artifacts/allure-results-merged"
+        rm -rf "${merged_dir}" || true
+        mkdir -p "${merged_dir}"
+
+        if [ -d "artifacts/allure-results" ]; then
+          find artifacts/allure-results -type f -exec cp -f {} "${merged_dir}/" \\;
+          files_count="$(find "${merged_dir}" -type f | wc -l | tr -d ' ')"
+          echo "[ALLURE_MERGE] merged files: ${files_count}"
+        else
+          echo "[ALLURE_MERGE] source dir artifacts/allure-results not found"
+        fi
+        exit 0
+      '''
+
       archiveArtifacts artifacts: 'artifacts/**, .requirements.sha256, .python_bin', allowEmptyArchive: true
 
       script {
         try {
-          allure includeProperties: false, jdk: '', results: [[path: 'artifacts/allure-results']]
+          allure includeProperties: false, jdk: '', results: [[path: 'artifacts/allure-results-merged']]
           echo 'Allure report published in Jenkins UI.'
         } catch (Exception e) {
           echo "Allure publish skipped: ${e.getMessage()}"
