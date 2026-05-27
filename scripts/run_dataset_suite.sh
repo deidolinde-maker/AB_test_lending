@@ -27,6 +27,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+run_pytest() {
+  if command -v "${pytest_bin}" >/dev/null 2>&1; then
+    "${pytest_bin}" "$@"
+    return
+  fi
+  "${python_bin}" -m pytest "$@"
+}
+
 if [[ -z "${run_tag}" ]]; then
   if [[ -n "${BUILD_NUMBER:-}" ]]; then
     run_tag="build_${BUILD_NUMBER}"
@@ -72,7 +80,7 @@ for row in "${datasets[@]}"; do
   )
 
   set +e
-  "${pytest_bin}" "${args[@]}"
+  run_pytest "${args[@]}"
   exit_code=$?
   set -e
   if [[ ${exit_code} -ne 0 ]]; then

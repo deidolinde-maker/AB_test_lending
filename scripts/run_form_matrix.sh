@@ -21,6 +21,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+run_pytest() {
+  if command -v "${pytest_bin}" >/dev/null 2>&1; then
+    "${pytest_bin}" "$@"
+    return
+  fi
+  "${python_bin}" -m pytest "$@"
+}
+
 forms=(
   "profit"
   "connection"
@@ -42,7 +50,7 @@ for variant in "${variants[@]}"; do
     echo "=== RUN variant=${variant} form=${form} site=${site} url_type=${url_type} ==="
 
     set +e
-    "${pytest_bin}" \
+    run_pytest \
       -q -s \
       tests/test_search_variant_a.py::test_search_variant_a \
       tests/test_search_variant_b.py::test_search_variant_b \
