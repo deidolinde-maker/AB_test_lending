@@ -94,12 +94,26 @@ pipeline {
           set -e
           mkdir -p "${PIP_CACHE_DIR}"
 
+          base_py="${PYTHON_BIN}"
+          if ! command -v "${base_py}" >/dev/null 2>&1; then
+            if command -v python3 >/dev/null 2>&1; then
+              base_py="python3"
+              echo "Configured PYTHON_BIN='${PYTHON_BIN}' is unavailable. Fallback to '${base_py}'."
+            elif command -v python >/dev/null 2>&1; then
+              base_py="python"
+              echo "Configured PYTHON_BIN='${PYTHON_BIN}' is unavailable. Fallback to '${base_py}'."
+            else
+              echo "No Python interpreter found. Install python3 (and python3-venv) on Jenkins agent."
+              exit 127
+            fi
+          fi
+
           pybin="${PYTHON_BIN_VENV}"
           if [ ! -x "${pybin}" ]; then
-            "${PYTHON_BIN}" -m venv .venv || true
+            "${base_py}" -m venv .venv || true
           fi
           if [ ! -x "${pybin}" ]; then
-            pybin="${PYTHON_BIN}"
+            pybin="${base_py}"
           fi
           if [ -z "${pybin}" ]; then
             echo "Python binary is not resolved."
