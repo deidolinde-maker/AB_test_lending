@@ -192,6 +192,18 @@ pipeline {
       }
     }
 
+    stage('Clean run artifacts') {
+      steps {
+        sh '''
+          set +e
+          rm -rf artifacts/allure-results artifacts/allure-results-merged artifacts/reports || true
+          mkdir -p artifacts/allure-results artifacts/reports
+          echo "Workspace artifacts cleaned before test run."
+          exit 0
+        '''
+      }
+    }
+
     stage('Run Form Matrix (All url_type)') {
       when {
         expression { env.RUN_SUITE == 'form_matrix' || env.RUN_SUITE == 'both' }

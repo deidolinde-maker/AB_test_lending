@@ -120,5 +120,6 @@ powershell -ExecutionPolicy Bypass -File scripts/run_form_matrix_all.ps1 `
 - кэш Python пакетов: `PIP_CACHE_DIR=${JENKINS_HOME}\\cache\\pip`;
 - кэш Playwright браузеров: `PLAYWRIGHT_BROWSERS_PATH=${JENKINS_HOME}\\cache\\ms-playwright`;
 - зависимости переустанавливаются только при изменении `requirements.txt` (по SHA256);
+- перед каждым запуском очищаются `artifacts/allure-results`, `artifacts/allure-results-merged`, `artifacts/reports`;
 - ретеншн билдов/артефактов через `buildDiscarder` по дням и количеству;
 - периодическая очистка старых `archive` и `allure-report` (параметры `ENABLE_PERIODIC_ARTIFACT_PURGE`, `PERIODIC_PURGE_EVERY`).
