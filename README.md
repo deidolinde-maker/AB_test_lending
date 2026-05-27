@@ -107,6 +107,12 @@ powershell -ExecutionPolicy Bypass -File scripts/run_form_matrix_all.ps1 `
 - `both` — оба контура;
 - `single_case` — запуск одного кейса по фильтрам.
 
+Режим записи видео в e2e:
+
+- по умолчанию: `--video-mode=on_failure` (видео сохраняется только на падениях);
+- `--video-mode=always` — сохранять видео всегда (для глубокого дебага);
+- `--video-mode=off` — полностью отключить запись видео.
+
 Параметры для `RUN_SUITE=single_case`:
 
 - `CASE_DATASET` — один датасет (`main_search/isolation/adjacent/forbidden_region/synonyms`);

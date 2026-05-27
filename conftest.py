@@ -37,6 +37,12 @@ def pytest_addoption(parser):
     parser.addoption("--form", action="store", default="all")
     parser.addoption("--case-id", action="store", default="all")
     parser.addoption("--run-e2e", action="store_true", default=False)
+    parser.addoption(
+        "--video-mode",
+        action="store",
+        default="on_failure",
+        choices=["off", "on_failure", "always"],
+    )
 
 
 def _matches_filter(value: str | None, selected: str) -> bool:
@@ -145,8 +151,10 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture
 def browser_context_args(browser_context_args, request, tmp_path):
-    # Keep videos only for explicit e2e runs.
+    # Record videos only for explicit e2e runs.
     if not request.config.getoption("--run-e2e"):
+        return browser_context_args
+    if request.config.getoption("--video-mode") == "off":
         return browser_context_args
     video_dir = tmp_path / "videos"
     video_dir.mkdir(parents=True, exist_ok=True)
@@ -161,13 +169,26 @@ def browser_context_args(browser_context_args, request, tmp_path):
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
+    if report.when in {"setup", "call"} and report.failed:
+        setattr(item, "_test_failed", True)
     if report.when != "teardown":
         return
     video_dir = getattr(item, "_video_dir", None)
     if not video_dir:
         return
+    video_mode = item.config.getoption("--video-mode")
     path = Path(video_dir)
     if not path.exists():
+        return
+    keep_video = video_mode == "always" or (
+        video_mode == "on_failure" and getattr(item, "_test_failed", False)
+    )
+    if not keep_video:
+        for video_path in path.glob("*.webm"):
+            try:
+                video_path.unlink(missing_ok=True)
+            except Exception:
+                pass
         return
     for idx, video_path in enumerate(sorted(path.glob("*.webm")), start=1):
         attach_video_file(video_path, name=f"video_{idx}")
