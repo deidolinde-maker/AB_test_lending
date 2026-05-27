@@ -78,6 +78,10 @@ pytest --site=mts_internet_online --dataset=synonyms -n auto
 - `scripts/summarize_form_matrix.py` — сводка по статусам и сигнатурам падений;
 - `scripts/run_dataset_suite.ps1` — прогон полного набора датасетов первой итерации;
 - `scripts/summarize_dataset_suite.py` — сводка по датасетам.
+- Linux-раннеры для Jenkins:
+  - `scripts/run_form_matrix.sh`
+  - `scripts/run_form_matrix_all.sh`
+  - `scripts/run_dataset_suite.sh`
 
 Пример локального запуска под Jenkins-режим:
 

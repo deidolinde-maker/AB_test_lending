@@ -14,8 +14,8 @@ pipeline {
 
   parameters {
     string(name: 'SITE', defaultValue: 'mts_internet_online', description: 'Site key from config/sites.yaml')
-    string(name: 'PYTEST_BIN', defaultValue: 'pytest', description: 'Pytest command (for example .venv\\Scripts\\pytest.exe)')
-    string(name: 'PYTHON_BIN', defaultValue: 'python', description: 'Python command (for example .venv\\Scripts\\python.exe)')
+    string(name: 'PYTEST_BIN', defaultValue: 'pytest', description: 'Pytest command (for example .venv/bin/pytest)')
+    string(name: 'PYTHON_BIN', defaultValue: 'python3', description: 'Python command (for example .venv/bin/python)')
     choice(name: 'RUN_SUITE', choices: ['form_matrix', 'dataset_suite', 'both'], description: 'Which suite to run')
     booleanParam(name: 'FAIL_ON_TEST_FAILURES', defaultValue: false, description: 'If true, build fails when any test run has failed tests')
     booleanParam(name: 'ENABLE_PERIODIC_ARTIFACT_PURGE', defaultValue: true, description: 'Every N builds, delete archived artifacts/allure reports of previous builds for this job.')
@@ -23,11 +23,11 @@ pipeline {
   }
 
   environment {
-    PIP_CACHE_DIR = "${JENKINS_HOME}\\cache\\pip"
-    PLAYWRIGHT_BROWSERS_PATH = "${JENKINS_HOME}\\cache\\ms-playwright"
+    PLAYWRIGHT_BROWSERS_PATH = '/var/lib/jenkins/cache/ms-playwright'
+    PIP_CACHE_DIR = '/var/lib/jenkins/cache/pip'
     PIP_DISABLE_PIP_VERSION_CHECK = '1'
     PYTHONUNBUFFERED = '1'
-    PYTHON_BIN_VENV = '.venv\\Scripts\\python.exe'
+    PYTHON_BIN_VENV = '.venv/bin/python'
     PYTHON_BIN_FILE = '.python_bin'
     REQ_HASH_FILE = '.requirements.sha256'
   }
@@ -51,109 +51,110 @@ pipeline {
 
     stage('Cache diagnostics') {
       steps {
-        powershell '''
-          $ErrorActionPreference = "Stop"
-          Write-Host "=== Cache diagnostics ==="
-          Write-Host "Workspace: $PWD"
-          Write-Host "PIP_CACHE_DIR=$env:PIP_CACHE_DIR"
-          Write-Host "PLAYWRIGHT_BROWSERS_PATH=$env:PLAYWRIGHT_BROWSERS_PATH"
+        sh '''
+          set -e
+          echo "=== Cache diagnostics ==="
+          echo "Workspace: $(pwd)"
+          echo "PIP_CACHE_DIR=${PIP_CACHE_DIR}"
+          echo "PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH}"
 
-          if (Test-Path -LiteralPath ".venv\\Scripts\\python.exe") {
-            Write-Host "[VENV] Reused: .venv exists"
-            & ".venv\\Scripts\\python.exe" --version
-          } else {
-            Write-Host "[VENV] Missing: .venv will be created"
-          }
+          if [ -x ".venv/bin/python" ]; then
+            echo "[VENV] Reused: .venv exists"
+            .venv/bin/python --version || true
+          else
+            echo "[VENV] Missing: .venv will be created"
+          fi
 
-          if (Test-Path -LiteralPath $env:REQ_HASH_FILE) {
-            $hash = (Get-Content -LiteralPath $env:REQ_HASH_FILE -Raw).Trim()
-            Write-Host "[REQ_HASH] Found: $hash"
-          } else {
-            Write-Host "[REQ_HASH] Missing: deps install expected"
-          }
+          if [ -f "${REQ_HASH_FILE}" ]; then
+            echo "[REQ_HASH] Found: $(cat "${REQ_HASH_FILE}")"
+          else
+            echo "[REQ_HASH] Missing: deps install expected"
+          fi
 
-          if (Test-Path -LiteralPath $env:PIP_CACHE_DIR) {
-            Write-Host "[PIP_CACHE] Found"
-          } else {
-            Write-Host "[PIP_CACHE] Missing"
-          }
+          if [ -d "${PIP_CACHE_DIR}" ]; then
+            echo "[PIP_CACHE] Found"
+          else
+            echo "[PIP_CACHE] Missing"
+          fi
 
-          if (Test-Path -LiteralPath $env:PLAYWRIGHT_BROWSERS_PATH) {
-            Write-Host "[PW_CACHE] Found"
-            Get-ChildItem -LiteralPath $env:PLAYWRIGHT_BROWSERS_PATH -Name -ErrorAction SilentlyContinue | Select-Object -First 10
-          } else {
-            Write-Host "[PW_CACHE] Missing"
-          }
-          Write-Host "========================="
+          if [ -d "${PLAYWRIGHT_BROWSERS_PATH}" ]; then
+            echo "[PW_CACHE] Found"
+            ls -1 "${PLAYWRIGHT_BROWSERS_PATH}" | head -n 10 || true
+          else
+            echo "[PW_CACHE] Missing"
+          fi
+          echo "========================="
         '''
       }
     }
 
     stage('Prepare Python') {
       steps {
-        powershell '''
-          $ErrorActionPreference = "Stop"
+        sh '''
+          set -e
+          mkdir -p "${PIP_CACHE_DIR}"
 
-          New-Item -ItemType Directory -Path $env:PIP_CACHE_DIR -Force | Out-Null
+          pybin="${PYTHON_BIN_VENV}"
+          if [ ! -x "${pybin}" ]; then
+            "${PYTHON_BIN}" -m venv .venv || true
+          fi
+          if [ ! -x "${pybin}" ]; then
+            pybin="${PYTHON_BIN}"
+          fi
+          if [ -z "${pybin}" ]; then
+            echo "Python binary is not resolved."
+            exit 2
+          fi
 
-          $pybin = $env:PYTHON_BIN_VENV
-          if (-not (Test-Path -LiteralPath $pybin)) {
-            & $env:PYTHON_BIN -m venv .venv
-          }
-          if (-not (Test-Path -LiteralPath $pybin)) {
-            $pybin = $env:PYTHON_BIN
-          }
-          if (-not $pybin) {
-            throw "Python binary is not resolved."
-          }
+          echo "${pybin}" > "${PYTHON_BIN_FILE}"
+          "${pybin}" --version
 
-          Set-Content -LiteralPath $env:PYTHON_BIN_FILE -Value $pybin -Encoding UTF8
-          & $pybin --version
+          current_hash="$(sha256sum requirements.txt | awk '{print $1}')"
+          saved_hash=""
+          if [ -f "${REQ_HASH_FILE}" ]; then
+            saved_hash="$(cat "${REQ_HASH_FILE}")"
+          fi
 
-          $currentHash = (Get-FileHash -LiteralPath "requirements.txt" -Algorithm SHA256).Hash.ToLowerInvariant()
-          $savedHash = ""
-          if (Test-Path -LiteralPath $env:REQ_HASH_FILE) {
-            $savedHash = (Get-Content -LiteralPath $env:REQ_HASH_FILE -Raw).Trim().ToLowerInvariant()
-          }
+          need_install=0
+          if [ ! -f "${REQ_HASH_FILE}" ]; then
+            need_install=1
+          fi
+          if [ "${current_hash}" != "${saved_hash}" ]; then
+            need_install=1
+          fi
+          if ! "${pybin}" -m pytest --version >/dev/null 2>&1; then
+            need_install=1
+          fi
 
-          $needInstall = $false
-          if (-not (Test-Path -LiteralPath $env:REQ_HASH_FILE)) { $needInstall = $true }
-          if ($currentHash -ne $savedHash) { $needInstall = $true }
-
-          & $pybin -m pytest --version *> $null
-          if ($LASTEXITCODE -ne 0) { $needInstall = $true }
-
-          if ($needInstall) {
-            Write-Host "Installing Python dependencies (first run or requirements changed)..."
-            & $pybin -m pip install --cache-dir "$env:PIP_CACHE_DIR" --upgrade pip
-            if ($LASTEXITCODE -ne 0) { throw "Failed to upgrade pip" }
-            & $pybin -m pip install --cache-dir "$env:PIP_CACHE_DIR" -r requirements.txt
-            if ($LASTEXITCODE -ne 0) { throw "Failed to install requirements" }
-            Set-Content -LiteralPath $env:REQ_HASH_FILE -Value $currentHash -Encoding UTF8
-          } else {
-            Write-Host "Python dependencies already installed, skip pip install."
-          }
+          if [ "${need_install}" = "1" ]; then
+            echo "Installing Python dependencies (first run or requirements changed)..."
+            "${pybin}" -m pip install --cache-dir "${PIP_CACHE_DIR}" --upgrade pip
+            "${pybin}" -m pip install --cache-dir "${PIP_CACHE_DIR}" -r requirements.txt
+            echo "${current_hash}" > "${REQ_HASH_FILE}"
+          else
+            echo "Python dependencies already installed, skip pip install."
+          fi
         '''
       }
     }
 
     stage('Install missing Playwright browsers') {
       steps {
-        powershell '''
-          $ErrorActionPreference = "Stop"
-          New-Item -ItemType Directory -Path $env:PLAYWRIGHT_BROWSERS_PATH -Force | Out-Null
+        sh '''
+          set -e
+          mkdir -p "${PLAYWRIGHT_BROWSERS_PATH}"
+          pybin="$(cat "${PYTHON_BIN_FILE}")"
+          if [ -z "${pybin}" ]; then
+            echo "PYTHON_BIN_FILE is empty"
+            exit 2
+          fi
 
-          $pybin = (Get-Content -LiteralPath $env:PYTHON_BIN_FILE -Raw).Trim()
-          if (-not $pybin) { throw "PYTHON_BIN_FILE is empty" }
-
-          $chromiumExists = Get-ChildItem -LiteralPath $env:PLAYWRIGHT_BROWSERS_PATH -Filter "chromium-*" -ErrorAction SilentlyContinue
-          if ($chromiumExists) {
-            Write-Host "Chromium already exists in shared Playwright cache."
-          } else {
-            Write-Host "Installing Chromium into shared Playwright cache..."
-            & $pybin -m playwright install chromium
-            if ($LASTEXITCODE -ne 0) { throw "Failed to install Chromium browser" }
-          }
+          if ls "${PLAYWRIGHT_BROWSERS_PATH}"/chromium-* >/dev/null 2>&1; then
+            echo "Chromium already exists in shared Playwright cache."
+          else
+            echo "Installing Chromium into shared Playwright cache..."
+            "${pybin}" -m playwright install chromium
+          fi
         '''
       }
     }
@@ -163,14 +164,15 @@ pipeline {
         expression { env.RUN_SUITE == 'form_matrix' || env.RUN_SUITE == 'both' }
       }
       steps {
-        powershell '''
-          $ErrorActionPreference = "Stop"
-          $pybin = (Get-Content -LiteralPath $env:PYTHON_BIN_FILE -Raw).Trim()
-          powershell -ExecutionPolicy Bypass -File scripts/run_form_matrix_all.ps1 `
-            -Site "${env:SITE}" `
-            -Pytest "${env:PYTEST_BIN}" `
-            -Python "$pybin" `
-            -FailOnTestFailures ([System.Convert]::ToBoolean("${env:FAIL_ON_TEST_FAILURES}"))
+        sh '''
+          set -e
+          pybin="$(cat "${PYTHON_BIN_FILE}")"
+          chmod +x scripts/*.sh
+          bash scripts/run_form_matrix_all.sh \
+            --site "${SITE}" \
+            --pytest "${PYTEST_BIN}" \
+            --python "${pybin}" \
+            --fail-on-test-failures "${FAIL_ON_TEST_FAILURES}"
         '''
       }
     }
@@ -180,14 +182,15 @@ pipeline {
         expression { env.RUN_SUITE == 'dataset_suite' || env.RUN_SUITE == 'both' }
       }
       steps {
-        powershell '''
-          $ErrorActionPreference = "Stop"
-          $pybin = (Get-Content -LiteralPath $env:PYTHON_BIN_FILE -Raw).Trim()
-          powershell -ExecutionPolicy Bypass -File scripts/run_dataset_suite.ps1 `
-            -Site "${env:SITE}" `
-            -Pytest "${env:PYTEST_BIN}" `
-            -Python "$pybin" `
-            -FailOnTestFailures ([System.Convert]::ToBoolean("${env:FAIL_ON_TEST_FAILURES}"))
+        sh '''
+          set -e
+          pybin="$(cat "${PYTHON_BIN_FILE}")"
+          chmod +x scripts/*.sh
+          bash scripts/run_dataset_suite.sh \
+            --site "${SITE}" \
+            --pytest "${PYTEST_BIN}" \
+            --python "${pybin}" \
+            --fail-on-test-failures "${FAIL_ON_TEST_FAILURES}"
         '''
       }
     }
@@ -208,61 +211,36 @@ pipeline {
 
       script {
         if (params.ENABLE_PERIODIC_ARTIFACT_PURGE) {
-          powershell '''
-            $ErrorActionPreference = "Continue"
-
-            $purgeEvery = 5
-            try {
-              $parsed = [int]$env:PERIODIC_PURGE_EVERY
-              if ($parsed -ge 2) { $purgeEvery = $parsed }
-            } catch {}
-
-            try {
-              $buildNumber = [int]$env:BUILD_NUMBER
-            } catch {
-              Write-Host "[PURGE] BUILD_NUMBER is not numeric, skip."
+          sh '''
+            set +e
+            purge_every="${PERIODIC_PURGE_EVERY:-5}"
+            if ! [ "${purge_every}" -ge 2 ] 2>/dev/null; then
+              purge_every=5
+            fi
+            if ! [ "${BUILD_NUMBER}" -ge 1 ] 2>/dev/null; then
+              echo "[PURGE] BUILD_NUMBER is not numeric, skip."
               exit 0
-            }
-
-            if (($buildNumber % $purgeEvery) -ne 0) {
-              Write-Host "[PURGE] Skip: build #$buildNumber is not each $purgeEvery-th run."
+            fi
+            mod=$(( BUILD_NUMBER % purge_every ))
+            if [ "${mod}" -ne 0 ]; then
+              echo "[PURGE] Skip: build #${BUILD_NUMBER} is not each ${purge_every}-th run."
               exit 0
-            }
-
-            if (-not $env:JENKINS_HOME -or -not $env:JOB_NAME) {
-              Write-Host "[PURGE] JENKINS_HOME or JOB_NAME is empty, skip."
+            fi
+            if [ -z "${JENKINS_HOME}" ] || [ -z "${JOB_NAME}" ]; then
+              echo "[PURGE] JENKINS_HOME or JOB_NAME is empty, skip."
               exit 0
-            }
+            fi
 
-            $jobParts = $env:JOB_NAME -split '/'
-            $jobsRoot = Join-Path $env:JENKINS_HOME 'jobs'
-            $jobPath = $jobsRoot
-            foreach ($part in $jobParts) {
-              $jobPath = Join-Path $jobPath $part
-              $jobPath = Join-Path $jobPath 'jobs'
-            }
-            $jobPath = Split-Path -Path $jobPath -Parent
-            $buildsDir = Join-Path $jobPath 'builds'
-
-            if (-not (Test-Path -LiteralPath $buildsDir)) {
-              Write-Host "[PURGE] Builds dir not found: $buildsDir"
+            job_path="$(printf '%s' "${JOB_NAME}" | sed 's#/#/jobs/#g')"
+            builds_dir="${JENKINS_HOME}/jobs/${job_path}/builds"
+            if [ ! -d "${builds_dir}" ]; then
+              echo "[PURGE] Builds dir not found: ${builds_dir}"
               exit 0
-            }
+            fi
 
-            Write-Host "[PURGE] Running periodic purge for $env:JOB_NAME at build #$buildNumber (every $purgeEvery)"
-            $buildDirs = Get-ChildItem -LiteralPath $buildsDir -Directory -ErrorAction SilentlyContinue
-            foreach ($buildDir in $buildDirs) {
-              if ($buildDir.Name -eq "$buildNumber") { continue }
-              $archiveDir = Join-Path $buildDir.FullName 'archive'
-              $allureDir = Join-Path $buildDir.FullName 'allure-report'
-              if (Test-Path -LiteralPath $archiveDir) {
-                Remove-Item -LiteralPath $archiveDir -Recurse -Force -ErrorAction SilentlyContinue
-              }
-              if (Test-Path -LiteralPath $allureDir) {
-                Remove-Item -LiteralPath $allureDir -Recurse -Force -ErrorAction SilentlyContinue
-              }
-            }
-            Write-Host "[PURGE] Done."
+            echo "[PURGE] Running periodic purge for ${JOB_NAME} at build #${BUILD_NUMBER} (every ${purge_every})"
+            find "${builds_dir}" -mindepth 2 -maxdepth 2 -type d \\( -name archive -o -name allure-report \\) ! -path "${builds_dir}/${BUILD_NUMBER}/*" -print -exec rm -rf {} +
+            echo "[PURGE] Done."
             exit 0
           '''
         } else {
@@ -270,13 +248,11 @@ pipeline {
         }
       }
 
-      powershell '''
-        $ErrorActionPreference = "Continue"
-        Remove-Item -LiteralPath "artifacts\\videos" -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath ".pytest_cache" -Recurse -Force -ErrorAction SilentlyContinue
-        Get-ChildItem -LiteralPath . -Directory -Filter "__pycache__" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
-          Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
-        }
+      sh '''
+        set +e
+        rm -rf artifacts/videos .pytest_cache pytest-cache-files-* __pycache__ || true
+        find . -type d -name "__pycache__" -prune -exec rm -rf {} +
+        exit 0
       '''
     }
   }
