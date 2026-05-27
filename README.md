@@ -113,7 +113,7 @@ powershell -ExecutionPolicy Bypass -File scripts/run_form_matrix_all.ps1 `
 - `CASE_URL_TYPE` — `domain_without_region|moscow_subdomain|balashikha_folder|domodedovo_folder`;
 - `CASE_VARIANT` — `A` или `B`;
 - `CASE_FORM` — `profit|connection|checkaddress|undecided|moving|express_connection`;
-- `CASE_ID` — точный `case_id` из `config/search_data.yaml` (или `all`).
+- `CASE_ID` — выпадающий список `case_id` из `config/search_data.yaml` (или `all`).
 
 Кэш и очистка в Jenkins:
 

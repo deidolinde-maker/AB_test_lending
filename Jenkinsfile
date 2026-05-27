@@ -22,7 +22,21 @@ pipeline {
     choice(name: 'CASE_VARIANT', choices: ['A', 'B'], description: 'Used when RUN_SUITE=single_case')
     choice(name: 'CASE_FORM', choices: ['profit', 'connection', 'checkaddress', 'undecided', 'moving', 'express_connection'], description: 'Used when RUN_SUITE=single_case')
     choice(name: 'CASE_DATASET', choices: ['main_search', 'isolation', 'adjacent', 'forbidden_region', 'synonyms'], description: 'Used when RUN_SUITE=single_case')
-    string(name: 'CASE_ID', defaultValue: 'all', description: "Exact case_id from config/search_data.yaml, or 'all' for all cases matching filters.")
+    choice(
+      name: 'CASE_ID',
+      choices: [
+        'all',
+        'A_moscow_alabyan',
+        'A_mo_domodedovo_lomonosova',
+        'A_balashikha_ordzhonikidze',
+        'B_moscow_lipovy_park',
+        'B_mo_domodedovo_kolomiytsa',
+        'B_balashikha_chekhova',
+        'forbidden_A_petrozavodsk_lisitsynoy',
+        'forbidden_B_petrozavodsk_tapiola'
+      ],
+      description: "Select case_id from config/search_data.yaml, or 'all' for all cases matching filters."
+    )
     booleanParam(name: 'ENABLE_PERIODIC_ARTIFACT_PURGE', defaultValue: true, description: 'Every N builds, delete archived artifacts/allure reports of previous builds for this job.')
     string(name: 'PERIODIC_PURGE_EVERY', defaultValue: '5', description: 'Run full artifact purge every N-th build (integer >= 2).')
   }
