@@ -104,7 +104,16 @@ powershell -ExecutionPolicy Bypass -File scripts/run_form_matrix_all.ps1 `
 
 - `form_matrix` — только A/B form matrix;
 - `dataset_suite` — только датасеты `main_search/isolation/adjacent/forbidden_region/synonyms`;
-- `both` — оба контура.
+- `both` — оба контура;
+- `single_case` — запуск одного кейса по фильтрам.
+
+Параметры для `RUN_SUITE=single_case`:
+
+- `CASE_DATASET` — один датасет (`main_search/isolation/adjacent/forbidden_region/synonyms`);
+- `CASE_URL_TYPE` — `domain_without_region|moscow_subdomain|balashikha_folder|domodedovo_folder`;
+- `CASE_VARIANT` — `A` или `B`;
+- `CASE_FORM` — `profit|connection|checkaddress|undecided|moving|express_connection`;
+- `CASE_ID` — точный `case_id` из `config/search_data.yaml` (или `all`).
 
 Кэш и очистка в Jenkins:
 

@@ -16,8 +16,13 @@ pipeline {
     string(name: 'SITE', defaultValue: 'mts_internet_online', description: 'Site key from config/sites.yaml')
     string(name: 'PYTEST_BIN', defaultValue: 'pytest', description: 'Pytest command (for example .venv/bin/pytest)')
     string(name: 'PYTHON_BIN', defaultValue: 'python3', description: 'Python command (for example .venv/bin/python)')
-    choice(name: 'RUN_SUITE', choices: ['form_matrix', 'dataset_suite', 'both'], description: 'Which suite to run')
+    choice(name: 'RUN_SUITE', choices: ['form_matrix', 'dataset_suite', 'both', 'single_case'], description: 'Which suite to run')
     booleanParam(name: 'FAIL_ON_TEST_FAILURES', defaultValue: false, description: 'If true, build fails when any test run has failed tests')
+    string(name: 'CASE_URL_TYPE', defaultValue: 'domain_without_region', description: 'Used when RUN_SUITE=single_case')
+    choice(name: 'CASE_VARIANT', choices: ['A', 'B'], description: 'Used when RUN_SUITE=single_case')
+    choice(name: 'CASE_FORM', choices: ['profit', 'connection', 'checkaddress', 'undecided', 'moving', 'express_connection'], description: 'Used when RUN_SUITE=single_case')
+    choice(name: 'CASE_DATASET', choices: ['main_search', 'isolation', 'adjacent', 'forbidden_region', 'synonyms'], description: 'Used when RUN_SUITE=single_case')
+    string(name: 'CASE_ID', defaultValue: 'all', description: "Exact case_id from config/search_data.yaml, or 'all' for all cases matching filters.")
     booleanParam(name: 'ENABLE_PERIODIC_ARTIFACT_PURGE', defaultValue: true, description: 'Every N builds, delete archived artifacts/allure reports of previous builds for this job.')
     string(name: 'PERIODIC_PURGE_EVERY', defaultValue: '5', description: 'Run full artifact purge every N-th build (integer >= 2).')
   }
@@ -202,6 +207,29 @@ pipeline {
           chmod +x scripts/*.sh
           bash scripts/run_dataset_suite.sh \
             --site "${SITE}" \
+            --pytest "${PYTEST_BIN}" \
+            --python "${pybin}" \
+            --fail-on-test-failures "${FAIL_ON_TEST_FAILURES}"
+        '''
+      }
+    }
+
+    stage('Run Single Case') {
+      when {
+        expression { env.RUN_SUITE == 'single_case' }
+      }
+      steps {
+        sh '''
+          set -e
+          pybin="$(cat "${PYTHON_BIN_FILE}")"
+          chmod +x scripts/*.sh
+          bash scripts/run_dataset_suite.sh \
+            --site "${SITE}" \
+            --dataset-filter "${CASE_DATASET}" \
+            --url-type "${CASE_URL_TYPE}" \
+            --variant "${CASE_VARIANT}" \
+            --form "${CASE_FORM}" \
+            --case-id "${CASE_ID}" \
             --pytest "${PYTEST_BIN}" \
             --python "${pybin}" \
             --fail-on-test-failures "${FAIL_ON_TEST_FAILURES}"

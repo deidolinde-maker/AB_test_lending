@@ -7,7 +7,9 @@ param(
     [string[]]$PytestExtraArgs = @(),
     [string]$Python = "python",
     [bool]$FailOnTestFailures = $true,
-    [string]$RunTag = ""
+    [string]$RunTag = "",
+    [string]$DatasetFilter = "all",
+    [string]$CaseId = "all"
 )
 
 $ErrorActionPreference = "Stop"
@@ -59,6 +61,9 @@ $baseDir = "artifacts/allure-results/$Site/datasets/$RunTag"
 
 foreach ($dataset in $datasets) {
     $datasetName = $dataset.Name
+    if ($DatasetFilter -ne "all" -and $datasetName -ne $DatasetFilter) {
+        continue
+    }
     $allureDir = "$baseDir/$datasetName"
     New-Item -ItemType Directory -Path $allureDir -Force | Out-Null
 
@@ -80,6 +85,7 @@ foreach ($dataset in $datasets) {
         "--url-type", $UrlType,
         "--variant", $Variant,
         "--form", $Form,
+        "--case-id", $CaseId,
         "--alluredir", $allureDir
     )
 

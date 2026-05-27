@@ -35,6 +35,7 @@ def pytest_addoption(parser):
         choices=["all", "main_search", "isolation", "adjacent", "forbidden_region", "synonyms"],
     )
     parser.addoption("--form", action="store", default="all")
+    parser.addoption("--case-id", action="store", default="all")
     parser.addoption("--run-e2e", action="store_true", default=False)
 
 
@@ -53,6 +54,7 @@ def _case_passes_cli(case, config) -> bool:
         and _matches_filter(getattr(case, "variant", None), config.getoption("--variant"))
         and _matches_filter(getattr(case, "dataset", None), config.getoption("--dataset"))
         and _matches_filter(getattr(case, "form", None), config.getoption("--form"))
+        and _matches_filter(getattr(case, "case_id", None), config.getoption("--case-id"))
     )
 
 

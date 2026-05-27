@@ -3,7 +3,10 @@ param(
     [string]$UrlType = "moscow_subdomain",
     [string]$Pytest = "pytest",
     [string]$Python = "python",
-    [bool]$FailOnTestFailures = $true
+    [bool]$FailOnTestFailures = $true,
+    [string]$CaseId = "all",
+    [string[]]$Forms = @(),
+    [string[]]$Variants = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -18,6 +21,12 @@ $forms = @(
 )
 
 $variants = @("A", "B")
+if ($Forms.Count -gt 0) {
+    $forms = $Forms
+}
+if ($Variants.Count -gt 0) {
+    $variants = $Variants
+}
 $failedRuns = @()
 
 foreach ($variant in $variants) {
@@ -37,6 +46,7 @@ foreach ($variant in $variants) {
             --url-type $UrlType `
             --form $form `
             --variant $variant `
+            --case-id $CaseId `
             --alluredir $allureDir
 
         $pytestExitCode = $LASTEXITCODE

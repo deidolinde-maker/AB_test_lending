@@ -9,6 +9,8 @@ pytest_bin="pytest"
 python_bin="python"
 fail_on_test_failures="true"
 run_tag=""
+dataset_filter="all"
+case_id="all"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -20,6 +22,8 @@ while [[ $# -gt 0 ]]; do
     --python) python_bin="$2"; shift 2 ;;
     --fail-on-test-failures) fail_on_test_failures="$2"; shift 2 ;;
     --run-tag) run_tag="$2"; shift 2 ;;
+    --dataset-filter) dataset_filter="$2"; shift 2 ;;
+    --case-id) case_id="$2"; shift 2 ;;
     *)
       echo "Unknown argument: $1" >&2
       exit 2
@@ -56,6 +60,9 @@ base_dir="artifacts/allure-results/${site}/datasets/${run_tag}"
 
 for row in "${datasets[@]}"; do
   dataset_name="${row%%|*}"
+  if [[ "${dataset_filter}" != "all" && "${dataset_name}" != "${dataset_filter}" ]]; then
+    continue
+  fi
   tests_part="${row#*|}"
   allure_dir="${base_dir}/${dataset_name}"
   mkdir -p "${allure_dir}"
@@ -76,6 +83,7 @@ for row in "${datasets[@]}"; do
     --url-type "${url_type}"
     --variant "${variant}"
     --form "${form}"
+    --case-id "${case_id}"
     --alluredir "${allure_dir}"
   )
 

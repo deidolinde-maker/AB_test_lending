@@ -6,6 +6,9 @@ url_type="moscow_subdomain"
 pytest_bin="pytest"
 python_bin="python"
 fail_on_test_failures="true"
+case_id="all"
+forms_filter="all"
+variants_filter="all"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -14,6 +17,9 @@ while [[ $# -gt 0 ]]; do
     --pytest) pytest_bin="$2"; shift 2 ;;
     --python) python_bin="$2"; shift 2 ;;
     --fail-on-test-failures) fail_on_test_failures="$2"; shift 2 ;;
+    --case-id) case_id="$2"; shift 2 ;;
+    --forms) forms_filter="$2"; shift 2 ;;
+    --variants) variants_filter="$2"; shift 2 ;;
     *)
       echo "Unknown argument: $1" >&2
       exit 2
@@ -39,6 +45,13 @@ forms=(
 )
 variants=("A" "B")
 
+if [[ "${forms_filter}" != "all" ]]; then
+  IFS=',' read -r -a forms <<< "${forms_filter}"
+fi
+if [[ "${variants_filter}" != "all" ]]; then
+  IFS=',' read -r -a variants <<< "${variants_filter}"
+fi
+
 failed_runs=()
 
 for variant in "${variants[@]}"; do
@@ -59,6 +72,7 @@ for variant in "${variants[@]}"; do
       --url-type "${url_type}" \
       --form "${form}" \
       --variant "${variant}" \
+      --case-id "${case_id}" \
       --alluredir "${allure_dir}"
     exit_code=$?
     set -e
