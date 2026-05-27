@@ -1,0 +1,185 @@
+# Справочник типовых форм и селекторов для лендингов
+# Используется как входной конфиг для автотестов.
+# Для первой итерации testNewAddressPoisk участвуют только формы с адреской:
+# улица -> дом -> выбор из саджеста.
+#
+# business включён в справочник как известная типовая форма,
+# но для первой итерации А/Б-поиска не применяется, так как у неё нет сценария улица -> дом.
+
+version: 1
+name: "landing_forms_selectors"
+case_insensitive: false
+
+forms:
+  profit:
+    site_title: "Выгодное спецпредложение!"
+    participates_in_ab_search_iteration_1: true
+    optional: false
+    behavior:
+      type: "popup"
+      has_street_house_suggest: true
+      has_city_change: true
+      notes:
+        - "Может открываться по обычной кнопке."
+        - "Может открываться через плавающую кнопку звонка, если она есть на странице."
+        - "Полный сценарий: улица -> дом -> телефон -> отправка."
+    selectors:
+      open:
+        - ".profit_address_button"
+      floating_call_open: []
+      street: ".profit_address_street"
+      house: ".profit_address_house"
+      phone: ".profit_address_phone"
+      submit: ".profit_address_button_send"
+      change_city: ".profit_address_button_change_city"
+
+  connection:
+    site_title: "Заявка на подключение"
+    participates_in_ab_search_iteration_1: true
+    optional: false
+    behavior:
+      type: "popup"
+      has_street_house_suggest: true
+      has_city_change: true
+      notes:
+        - "Триггеры разные: обычные кнопки и кнопки в карточках тарифов."
+        - "Для connection_cards важна проверка именно card-trigger."
+        - "Полный сценарий: улица -> дом -> телефон -> отправка."
+    selectors:
+      open:
+        - ".connection_address_button"
+      open_from_cards:
+        - ".connection_address_card_button"
+      street: ".connection_address_street"
+      house: ".connection_address_house"
+      phone: ".connection_address_phone"
+      submit: ".connection_address_button_send"
+      change_city: ".connection_address_button_change_city"
+
+  checkaddress:
+    site_title: "Проверить адрес"
+    participates_in_ab_search_iteration_1: true
+    optional: false
+    behavior:
+      type: "popup_or_inline"
+      has_street_house_suggest: true
+      has_city_change: true
+      notes:
+        - "Бывает как попап и как инлайн-форма."
+        - "На части URL встречается вариант checkaddress-undecided."
+        - "Полный сценарий: улица -> дом -> телефон -> отправка."
+    selectors:
+      open_popup:
+        - ".checkaddress_address_button"
+      inline_form:
+        - ".checkaddress"
+      street: ".checkaddress_address_street"
+      house: ".checkaddress_address_house"
+      phone: ".checkaddress_address_phone"
+      submit: ".checkaddress_address_button_send"
+      # In current markup city name and change trigger are separate elements:
+      # ".checkaddress_address_button_change_city" points to current city label,
+      # while ".button-select-city" opens the city popup.
+      change_city: ".button-select-city"
+
+  undecided:
+    site_title: "Не определились с тарифом?"
+    participates_in_ab_search_iteration_1: true
+    optional: true
+    behavior:
+      type: "inline_or_popup"
+      has_street_house_suggest: true
+      has_city_change: true
+      notes:
+        - "Чаще инлайн/отдельный блок."
+        - "Не всегда есть на странице."
+        - "Если присутствует, сценарий: улица -> дом -> телефон -> отправка."
+    selectors:
+      open_if_popup:
+        - ".checkaddress-undecided"
+      street: ".undecided_address_street"
+      house: ".undecided_address_house"
+      phone: ".undecided_address_phone"
+      submit: ".undecided_address_button_send"
+      change_city: ".undecided_address_button_change_city"
+
+  business:
+    site_title: "Заявка на подключение для бизнеса"
+    participates_in_ab_search_iteration_1: false
+    optional: true
+    behavior:
+      type: "business_form"
+      has_street_house_suggest: false
+      has_city_change: false
+      notes:
+        - "Ключевая особенность: нет сайджеста улица -> дом."
+        - "Обычно одно поле полного адреса текстом + телефон."
+        - "Шаги 'выбор улицы', 'выбор дома' и 'смена города' для неё неприменимы."
+        - "На части страниц может быть переход или другая логика вместо классического попапа."
+        - "Не входит в первую итерацию testNewAddressPoisk."
+    selectors:
+      open: []
+      full_address: null
+      phone: null
+      submit: null
+      change_city: null
+
+  moving:
+    site_title: "Заявка на услугу переезд"
+    participates_in_ab_search_iteration_1: true
+    optional: true
+    behavior:
+      type: "popup"
+      has_street_house_suggest: true
+      has_city_change: true
+      notes:
+        - "Есть только на ограниченных URL, например /usluga-pereezd."
+        - "Полный сценарий как у адресных форм: улица -> дом -> телефон -> отправка."
+    selectors:
+      open:
+        - ".moving_address_button"
+      street: ".moving_address_street"
+      house: ".moving_address_house"
+      phone: ".moving_address_phone"
+      submit: ".moving_address_button_send"
+      change_city: ".moving_address_button_change_city"
+
+  express_connection:
+    site_title: "Заявка на экспресс подключение"
+    participates_in_ab_search_iteration_1: true
+    optional: true
+    behavior:
+      type: "popup"
+      has_street_house_suggest: true
+      has_city_change: true
+      notes:
+        - "В основном встречается на группе mts-home-online.ru."
+        - "Может отсутствовать по A/B-логике."
+        - "Может быть отключена на отдельных разделах или городах, например mobile-only."
+        - "Если отсутствует на таких URL — это может быть допустимо."
+    selectors:
+      open:
+        - ".express-connection_address_button"
+      street: ".express-connection_address_street"
+      house: ".express-connection_address_house"
+      phone: ".express-connection_address_phone"
+      submit: ".express-connection_address_button_send"
+      change_city: ".express-connection_address_button_change_city"
+
+test_scope_notes:
+  iteration_1:
+    included_forms:
+      - "profit"
+      - "connection"
+      - "checkaddress"
+      - "undecided"
+      - "moving"
+      - "express_connection"
+    excluded_forms:
+      - "business"
+    rules:
+      - "Автотест первой итерации использует только формы, где есть сценарий улица -> дом -> выбор из саджеста."
+      - "Формы без адрески не участвуют в testNewAddressPoisk."
+      - "optional=true означает, что отсутствие формы на конкретном URL не считается ошибкой, если форма не обязательна для этого URL."
+      - "Для checkaddress нужно поддержать оба режима: попап и инлайн."
+      - "Для connection нужно поддержать обычный trigger и trigger из карточек тарифов."

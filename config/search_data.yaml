@@ -1,0 +1,129 @@
+version: 1
+
+addresses:
+  - case_id: "A_moscow_alabyan"
+    variant: "A"
+    address_source: "old"
+    region: "Москва"
+    region_id: 77
+    street_query: "Алабяна"
+    expected_street: "Алабяна"
+    house_query: "9/15"
+    expected_house: "9/15"
+    expected_id: 35
+    expected_id_type: "address_id"
+    is_adjacent: false
+    notes: "v1 Москва: ул. Алабяна, д. 9/15, р-н Сокол"
+
+  - case_id: "A_mo_domodedovo_lomonosova"
+    variant: "A"
+    address_source: "old"
+    region: "Домодедово"
+    region_id: 50
+    street_query: "Ломоносова"
+    expected_street: "Ломоносова"
+    house_query: "24"
+    expected_house: "24"
+    expected_id: 39911
+    expected_id_type: "address_id"
+    is_adjacent: false
+    notes: "v1 Московская область: ул. Ломоносова, д. 24, Домодедово"
+
+  - case_id: "A_balashikha_ordzhonikidze"
+    variant: "A"
+    address_source: "old"
+    region: "Балашиха"
+    region_id: 194
+    street_query: "Орджоникидзе"
+    expected_street: "Орджоникидзе"
+    house_query: "24"
+    expected_house: "24"
+    expected_id: 122380
+    expected_id_type: "address_id"
+    is_adjacent: false
+    notes: "v1 Балашиха: ул. Орджоникидзе, д. 24"
+
+  - case_id: "B_moscow_lipovy_park"
+    variant: "B"
+    address_source: "v2"
+    region: "Москва"
+    region_id: 77
+    street_query: "Липовый парк"
+    expected_street: "Липовый парк"
+    house_query: "2"
+    expected_house: "2"
+    expected_id: 1067
+    expected_id_type: "house_id"
+    is_adjacent: false
+    notes: "v2 Москва: округ Новомосковский, Коммунарка, ул. Липовый парк, д. 2"
+
+  - case_id: "B_mo_domodedovo_kolomiytsa"
+    variant: "B"
+    address_source: "v2"
+    region: "Домодедово"
+    region_id: 50
+    street_query: "Коломийца"
+    expected_street: "Коломийца"
+    house_query: "8/1"
+    expected_house: "8/1"
+    expected_id: 1075
+    expected_id_type: "house_id"
+    is_adjacent: false
+    notes: "v2 Московская область: ул. Коломийца, д. 8/1, Домодедово"
+
+  - case_id: "B_balashikha_chekhova"
+    variant: "B"
+    address_source: "v2"
+    region: "Балашиха"
+    region_id: 194
+    street_query: "Чехова"
+    expected_street: "Чехова"
+    house_query: "10"
+    expected_house: "10"
+    expected_id: 101249
+    expected_id_type: "house_id"
+    is_adjacent: false
+    notes: "v2 Балашиха: ул. Чехова, д. 10"
+
+forbidden_region_cases:
+  - case_id: "forbidden_A_petrozavodsk_lisitsynoy"
+    variant: "A"
+    address_source: "old"
+    forbidden_region: "Петрозаводск"
+    forbidden_region_id: 10
+    street_query: "Лисицыной"
+    expected_street: "Лисицыной"
+    house_query: "9А"
+    expected_house: "9А"
+    expected_id: 522245
+    expected_id_type: "address_id"
+    expected_result: "not_found"
+
+  - case_id: "forbidden_B_petrozavodsk_tapiola"
+    variant: "B"
+    address_source: "v2"
+    forbidden_region: "Петрозаводск"
+    forbidden_region_id: 10
+    street_query: "Тапиола"
+    expected_street: "Тапиола"
+    house_query: "3"
+    expected_house: "3"
+    expected_id: 18984
+    expected_id_type: "house_id"
+    expected_result: "not_found"
+
+rules:
+  variant_A:
+    address_source: "old"
+    expected_id_type: "address_id"
+    forbidden_sources:
+      - "v2"
+
+  variant_B:
+    address_source: "v2"
+    expected_id_type: "house_id"
+    required_endpoints:
+      streets: "/api_protected/v2/search/streets"
+      houses: "/api_protected/v2/search/houses"
+    forbidden_sources:
+      - "old"

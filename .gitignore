@@ -1,0 +1,9 @@
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+allure-results/
+playwright-report/
+artifacts/
+_tmp_cfg_validation/
+_tmp_config_copy_*/
