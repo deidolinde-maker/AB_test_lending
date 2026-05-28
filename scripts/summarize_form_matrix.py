@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,6 +32,65 @@ def _signature(message: str) -> str:
     if "Required form" in message and "is not present" in message:
         return "REQUIRED_FORM_MISSING"
     return "OTHER_FAILURE"
+
+
+def _extract_case_name(test_name: str) -> str:
+    if "[" not in test_name or "]" not in test_name:
+        return test_name
+    bracket = test_name[test_name.find("[") + 1 : test_name.rfind("]")]
+    if "__" not in bracket:
+        return bracket
+    parts = bracket.split("__")
+    if len(parts) >= 5:
+        return parts[4].split("-")[0]
+    return bracket
+
+
+def _normalize_message(message: str) -> str:
+    return " ".join(line.strip() for line in message.splitlines() if line.strip())
+
+
+def _bug_details(message: str) -> tuple[str, str, str]:
+    if "Expected streets request to hit v2 endpoint" in message:
+        m = re.search(r"Observed search-like URLs:\s*(.+)$", message, flags=re.S)
+        observed = m.group(1).strip() if m else message.splitlines()[0]
+        return (
+            "Для варианта B запросы поиска улиц/домов должны идти через v2 endpoint.",
+            observed,
+            "Для варианта B фактически используется v1 endpoint вместо v2.",
+        )
+    if "Step: Validate selected address ID" in message:
+        m = re.search(r"Expected:\s*(.+)\s+Actual:\s*(.+)", _normalize_message(message))
+        if m:
+            return (
+                f"ID адреса должен совпасть с эталоном ({m.group(1).strip()}).",
+                f"Получен другой ID: {m.group(2).strip()}",
+                "Выбранный ID адреса не совпал с ожидаемым.",
+            )
+    if "Expected house in suggest" in message:
+        m = re.search(r"Expected house in suggest:\s*([^\.]+)\.?\s*(.*)$", message, flags=re.S)
+        if m:
+            return (
+                f"В саджесте должен присутствовать дом `{m.group(1).strip()}`.",
+                m.group(2).strip() or message.splitlines()[0],
+                "Саджест домов не содержит ожидаемое значение.",
+            )
+    if "House input did not become editable" in message:
+        return (
+            "Поле дома должно стать доступным для ввода после выбора улицы.",
+            message.splitlines()[0],
+            "Поле дома осталось заблокированным.",
+        )
+    first = message.splitlines()[0] if message else "Ошибка без текста."
+    return (
+        "Сценарий должен завершиться без ошибок.",
+        first,
+        "Обнаружено отклонение поведения от ожидаемого.",
+    )
+
+
+def _md(value: str) -> str:
+    return value.replace("\n", "<br>").replace("|", "\\|")
 
 
 def _iter_result_files(site_root: Path, url_types: set[str] | None) -> Iterable[Path]:
@@ -117,6 +177,22 @@ def _render_markdown(rows: list[ResultRow]) -> str:
             lines.append(
                 f"- [{row.url_type}][{row.variant}][{row.form}] {row.name} :: "
                 f"{_signature(row.message)} :: {first_line}"
+            )
+
+        lines.append("")
+        lines.append("## Баг-репорт (RU)")
+        lines.append("")
+        lines.append("| Кейс | Шаги | Ожидаемый результат | Фактический результат | Описание бага |")
+        lines.append("|---|---|---|---|---|")
+        for row in sorted(failed_like, key=lambda r: (r.url_type, r.variant, r.form, r.name)):
+            expected, actual, desc = _bug_details(row.message)
+            case_name = _extract_case_name(row.name)
+            steps = (
+                f"URL `{row.url_type}`, форма `{row.form}`, вариант `{row.variant}`: "
+                "пройти сценарий поиска адреса (улица -> дом -> проверки)."
+            )
+            lines.append(
+                f"| {_md(case_name)} | {_md(steps)} | {_md(expected)} | {_md(actual)} | {_md(desc)} |"
             )
 
     return "\n".join(lines)

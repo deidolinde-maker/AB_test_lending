@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from helpers.config_loader import LoadedConfig, build_search_case
-from models import SearchCase, SynonymCase
+from models import FormConfig, SearchCase, SiteConfig, SynonymCase
 
 
 @dataclass(frozen=True)
@@ -40,12 +40,24 @@ def _base_cases_for_variant(config: LoadedConfig, variant: str) -> list[dict]:
     return [raw for raw in config.addresses if raw["variant"] == variant]
 
 
+def _form_is_applicable_for_url(site: SiteConfig, form: FormConfig, url_type: str) -> bool:
+    required_by_url = site.required_forms_by_url_type or {}
+    if url_type in required_by_url:
+        required_forms = required_by_url.get(url_type) or []
+        # If required_forms_by_url_type is declared for this URL, run only listed forms.
+        return form.name in required_forms
+    # Fallback policy for sites without explicit per-url mapping.
+    return not form.optional
+
+
 def _expand_across_dimensions(config: LoadedConfig, raw_cases: Iterable[dict], dataset: str) -> list[SearchCase]:
     expanded: list[SearchCase] = []
     for raw in raw_cases:
         for site in config.sites:
             for url_type in site.urls:
                 for form in config.forms:
+                    if not _form_is_applicable_for_url(site, form, url_type):
+                        continue
                     expanded.append(
                         build_search_case(
                             raw,
@@ -113,6 +125,8 @@ def synonym_cases(config: LoadedConfig) -> list[SynonymCase]:
         for site in config.sites:
             for url_type in site.urls:
                 for form in config.forms:
+                    if not _form_is_applicable_for_url(site, form, url_type):
+                        continue
                     for rule in config.synonym_rules:
                         canonical = rule.canonical
                         if canonical.isdigit():
