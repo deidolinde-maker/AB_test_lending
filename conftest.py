@@ -33,7 +33,17 @@ def pytest_addoption(parser):
         "--dataset",
         action="store",
         default="all",
-        choices=["all", "main_search", "isolation", "adjacent", "forbidden_region", "synonyms"],
+        choices=[
+            "all",
+            "main_search",
+            "isolation",
+            "adjacent",
+            "forbidden_region",
+            "synonyms",
+            "region_change",
+            "regional_navigation",
+            "ab_cookie",
+        ],
     )
     parser.addoption("--form", action="store", default="all")
     parser.addoption("--case-id", action="store", default="all")
@@ -55,11 +65,17 @@ def _matches_filter(value: str | None, selected: str) -> bool:
 
 
 def _case_passes_cli(case, config) -> bool:
+    selected_dataset = config.getoption("--dataset")
+    case_dataset = getattr(case, "dataset", None)
+    dataset_ok = True
+    if case_dataset is not None:
+        dataset_ok = _matches_filter(case_dataset, selected_dataset)
+
     return (
         _matches_filter(getattr(case, "site", None), config.getoption("--site"))
         and _matches_filter(getattr(case, "url_type", None), config.getoption("--url-type"))
         and _matches_filter(getattr(case, "variant", None), config.getoption("--variant"))
-        and _matches_filter(getattr(case, "dataset", None), config.getoption("--dataset"))
+        and dataset_ok
         and _matches_filter(getattr(case, "form", None), config.getoption("--form"))
         and _matches_filter(getattr(case, "case_id", None), config.getoption("--case-id"))
     )
@@ -130,6 +146,9 @@ def pytest_collection_modifyitems(config, items):
             "adjacent": {"adjacent"},
             "forbidden_region": {"forbidden_region"},
             "synonyms": {"synonyms"},
+            "region_change": {"region_change"},
+            "regional_navigation": {"regional_navigation"},
+            "ab_cookie": {"ab_cookie"},
         }
         allowed_markers = dataset_marker_map[selected_dataset]
         to_drop = [

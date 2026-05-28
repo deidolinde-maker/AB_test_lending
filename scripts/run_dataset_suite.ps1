@@ -53,6 +53,24 @@ $datasets = @(
         Tests = @(
             "tests/test_synonyms.py"
         )
+    },
+    @{
+        Name = "region_change"
+        Tests = @(
+            "tests/test_region_change_inside_form.py"
+        )
+    },
+    @{
+        Name = "regional_navigation"
+        Tests = @(
+            "tests/test_regional_navigation.py"
+        )
+    },
+    @{
+        Name = "ab_cookie"
+        Tests = @(
+            "tests/test_ab_cookie.py"
+        )
     }
 )
 

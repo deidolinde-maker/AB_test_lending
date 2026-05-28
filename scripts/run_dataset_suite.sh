@@ -53,6 +53,9 @@ datasets=(
   "adjacent|tests/test_adjacent_search.py"
   "forbidden_region|tests/test_forbidden_region.py"
   "synonyms|tests/test_synonyms.py"
+  "region_change|tests/test_region_change_inside_form.py"
+  "regional_navigation|tests/test_regional_navigation.py"
+  "ab_cookie|tests/test_ab_cookie.py"
 )
 
 failed_runs=()
