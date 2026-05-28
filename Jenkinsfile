@@ -19,7 +19,7 @@ pipeline {
     choice(name: 'RUN_SUITE', choices: ['form_matrix', 'dataset_suite', 'both', 'single_case'], description: 'Which suite to run')
     booleanParam(name: 'FAIL_ON_TEST_FAILURES', defaultValue: false, description: 'If true, build fails when any test run has failed tests')
     string(name: 'CASE_URL_TYPE', defaultValue: 'domain_without_region', description: 'Used when RUN_SUITE=single_case')
-    choice(name: 'CASE_VARIANT', choices: ['A', 'B'], description: 'Used when RUN_SUITE=single_case')
+    choice(name: 'CASE_VARIANT', choices: ['all', 'A', 'B'], description: "Used when RUN_SUITE=single_case. 'all' runs both A and B.")
     choice(name: 'CASE_FORM', choices: ['all', 'profit', 'connection', 'checkaddress', 'undecided', 'moving', 'express_connection'], description: "Used when RUN_SUITE=single_case. 'all' runs all forms applicable for selected URL.")
     choice(name: 'CASE_DATASET', choices: ['main_search', 'isolation', 'adjacent', 'forbidden_region', 'synonyms'], description: 'Used when RUN_SUITE=single_case')
     choice(
