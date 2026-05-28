@@ -304,7 +304,7 @@ def pytest_runtest_makereport(item, call):
     if report.when != "teardown":
         return
 
-    if report.failed:
+    if report.failed or getattr(item, "_test_failed", False):
         report_md = _render_case_mini_report(item, report)
         report_file = _write_case_report_file(item, report_md)
         attach_markdown_file(report_file, name="mini_bug_report_ru")
