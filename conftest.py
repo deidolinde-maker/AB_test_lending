@@ -71,13 +71,21 @@ def _case_passes_cli(case, config) -> bool:
     if case_dataset is not None:
         dataset_ok = _matches_filter(case_dataset, selected_dataset)
 
+    def _matches_if_present(attr_name: str, selected: str) -> bool:
+        value = getattr(case, attr_name, None)
+        if value is None:
+            # Some datasets (e.g. ab_cookie/regional_navigation) do not have all generic filters.
+            # Missing attribute should not exclude the case.
+            return True
+        return _matches_filter(value, selected)
+
     return (
-        _matches_filter(getattr(case, "site", None), config.getoption("--site"))
-        and _matches_filter(getattr(case, "url_type", None), config.getoption("--url-type"))
-        and _matches_filter(getattr(case, "variant", None), config.getoption("--variant"))
+        _matches_if_present("site", config.getoption("--site"))
+        and _matches_if_present("url_type", config.getoption("--url-type"))
+        and _matches_if_present("variant", config.getoption("--variant"))
         and dataset_ok
-        and _matches_filter(getattr(case, "form", None), config.getoption("--form"))
-        and _matches_filter(getattr(case, "case_id", None), config.getoption("--case-id"))
+        and _matches_if_present("form", config.getoption("--form"))
+        and _matches_if_present("case_id", config.getoption("--case-id"))
     )
 
 
