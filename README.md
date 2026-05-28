@@ -128,7 +128,8 @@ powershell -ExecutionPolicy Bypass -File scripts/run_form_matrix_all.ps1 `
 - `CASE_DATASET` — один датасет (`main_search/isolation/adjacent/forbidden_region/synonyms`);
 - `CASE_URL_TYPE` — `domain_without_region|moscow_subdomain|balashikha_folder|domodedovo_folder`;
 - `CASE_VARIANT` — `A` или `B`;
-- `CASE_FORM` — `profit|connection|checkaddress|undecided|moving|express_connection`;
+- `CASE_FORM` — `all|profit|connection|checkaddress|undecided|moving|express_connection`;
+  `all` запускает все формы, применимые для выбранного `url_type` (с учетом фильтра актуальности форм).
 - `CASE_ID` — выпадающий список `case_id` из `config/search_data.yaml` (или `all`).
 
 Кэш и очистка в Jenkins:
