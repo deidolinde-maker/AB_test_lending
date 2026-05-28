@@ -573,13 +573,14 @@ class AddressForm:
         if house_locator.count() == 0:
             return None
 
+        # IMPORTANT:
+        # Return only house/address identifiers here.
+        # Street identifiers (IStreet/id_street) must not be used as selected house ID.
         for selector in (
             "input[name='house_id']",
             "input[name='address_id']",
             "input[name='IHouse']",
-            "input[name='IStreet']",
             "input#house",
-            "input#id_street",
         ):
             try:
                 value = house_locator.evaluate(
