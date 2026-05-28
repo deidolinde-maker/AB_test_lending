@@ -287,7 +287,7 @@ def run_negative_search_case(
 
         form.fill_street(case.street_query)
         form.wait_street_suggest()
-        form.assert_street_not_in_suggest(case.expected_street)
+        form.assert_street_not_in_suggest(case.expected_street, forbidden_region=case.region)
     except Exception:
         screenshot_path = tmp_path / f"{case.case_id}_negative.png"
         page.screenshot(path=str(screenshot_path), full_page=True)

@@ -264,6 +264,49 @@ class AddressForm:
         out = out.replace("/", "к")
         return out
 
+    @staticmethod
+    def _norm_text(value: str) -> str:
+        return " ".join((value or "").strip().lower().replace("ё", "е").split())
+
+    def _is_region_match(self, city_text: str, preferred_region: str | None) -> bool:
+        if not preferred_region:
+            return True
+        return self._norm_text(preferred_region) in self._norm_text(city_text)
+
+    def _is_strict_street_match(self, street_text: str, expected: str) -> bool:
+        st = self._norm_text(street_text)
+        exp = self._norm_text(expected)
+        if not st.startswith(exp):
+            return False
+        suffix = st[len(exp):].strip()
+        # Accept only direct street suffix, reject qualifiers like "(Салтыковка)".
+        return suffix in {"", "ул", "ул.", "улица"}
+
+    def _collect_street_rows(self) -> list[tuple[object, str, str]]:
+        rows: list[tuple[object, str, str]] = []
+        street_items = self.page.locator("#street-list .autocomplete-item")
+        if street_items.count() == 0:
+            street_items = self.page.locator(".autocomplete-list:not(.hidden) .autocomplete-item")
+        for idx in range(street_items.count()):
+            item = street_items.nth(idx)
+            try:
+                if not item.is_visible():
+                    continue
+                street_text = (
+                    item.locator(".autocomplete-street").first.inner_text()
+                    if item.locator(".autocomplete-street").count() > 0
+                    else item.inner_text()
+                )
+                city_text = (
+                    item.locator(".autocomplete-city").first.inner_text()
+                    if item.locator(".autocomplete-city").count() > 0
+                    else ""
+                )
+                rows.append((item, street_text or "", city_text or ""))
+            except Exception:
+                continue
+        return rows
+
     def _click_visible_text(self, text: str, timeout_ms: int = 8000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         last_error: Exception | None = None
@@ -352,52 +395,37 @@ class AddressForm:
             f"Expected street in suggest: {expected}. Visible street suggestions: {street_items}"
         )
 
-    def assert_street_not_in_suggest(self, unexpected: str) -> None:
-        assert not self._has_visible_text(unexpected), f"Unexpected street in suggest: {unexpected}"
+    def assert_street_not_in_suggest(self, unexpected: str, forbidden_region: str | None = None) -> None:
+        rows = self._collect_street_rows()
+        for _, street_text, city_text in rows:
+            if not self._is_strict_street_match(street_text, unexpected):
+                continue
+            if not self._is_region_match(city_text, forbidden_region):
+                continue
+            raise AssertionError(
+                f"Unexpected street in suggest: {unexpected}. "
+                f"Matched row: street='{street_text}', city='{city_text}'"
+            )
+        if not rows:
+            # Fallback if suggestion rows are not visible as structured list.
+            assert not self._has_visible_text(unexpected), f"Unexpected street in suggest: {unexpected}"
 
     def select_street(self, expected: str, preferred_region: str | None = None) -> None:
         self._last_selected_street = None
-        preferred_region_lc = (preferred_region or "").strip().lower()
-        street_items = self.page.locator("#street-list .autocomplete-item")
-        if street_items.count() == 0:
-            street_items = self.page.locator(".autocomplete-list:not(.hidden) .autocomplete-item")
-        if street_items.count() > 0:
-            matched: list[tuple[object, str, str]] = []
-            for idx in range(street_items.count()):
-                item = street_items.nth(idx)
-                try:
-                    if not item.is_visible():
-                        continue
-                    street_text = (
-                        item.locator(".autocomplete-street").first.inner_text()
-                        if item.locator(".autocomplete-street").count() > 0
-                        else item.inner_text()
-                    )
-                    city_text = (
-                        item.locator(".autocomplete-city").first.inner_text()
-                        if item.locator(".autocomplete-city").count() > 0
-                        else ""
-                    )
-                except Exception:
-                    continue
-
-                if expected.lower() not in (street_text or "").lower():
-                    continue
-
-                matched.append((item, street_text or "", city_text or ""))
-
-            if matched:
-                region_matched = [
-                    row for row in matched if preferred_region_lc and preferred_region_lc in row[2].lower()
+        street_rows = self._collect_street_rows()
+        if street_rows:
+            strict_rows = [row for row in street_rows if self._is_strict_street_match(row[1], expected)]
+            if strict_rows:
+                region_rows = [
+                    row for row in strict_rows if self._is_region_match(row[2], preferred_region)
                 ]
-                candidate_pool = region_matched or matched
+                candidate_pool = region_rows or strict_rows
 
-                def _street_rank(street_text: str) -> tuple[int, int, int]:
-                    st = street_text.strip().lower()
-                    exp = expected.strip().lower()
-                    has_paren = 1 if "(" in st or ")" in st else 0
-                    exact_prefix = 0 if st.startswith(exp) else 1
-                    return (has_paren, exact_prefix, len(st))
+                def _street_rank(street_text: str) -> tuple[int, int]:
+                    st = self._norm_text(street_text)
+                    exp = self._norm_text(expected)
+                    exact = 0 if st == exp or st in {f"{exp} ул", f"{exp} ул.", f"{exp} улица"} else 1
+                    return (exact, len(st))
 
                 best_item, best_street, best_city = min(candidate_pool, key=lambda row: _street_rank(row[1]))
                 best_item.click(timeout=3000, force=True)
@@ -407,9 +435,16 @@ class AddressForm:
                     "preferred_region": preferred_region,
                     "selected_street": best_street,
                     "selected_city": best_city,
-                    "strategy": "street_list_ranked",
+                    "strategy": "street_list_strict",
                 }
                 return
+
+            if preferred_region:
+                visible = self._collect_visible_suggest_items("#street-list")
+                raise AssertionError(
+                    f"Street '{expected}' for region '{preferred_region}' was not found as strict suggest match. "
+                    f"Visible street suggestions: {visible}"
+                )
 
         street_selector = first_selector(self.form_config.selectors, "street")
         if street_selector:
