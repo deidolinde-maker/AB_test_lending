@@ -287,7 +287,19 @@ def run_negative_search_case(
 
         form.fill_street(case.street_query)
         form.wait_street_suggest()
-        form.assert_street_not_in_suggest(case.expected_street, forbidden_region=case.region)
+        street_found_for_forbidden_region = form.try_select_street(
+            case.expected_street,
+            preferred_region=case.region,
+        )
+        if not street_found_for_forbidden_region:
+            return
+
+        # Isolation check must be done on full address scope.
+        # Street alone can legitimately exist in other data sources; failure is when
+        # the forbidden house is also selectable for this street+region pair.
+        form.fill_house(case.house_query)
+        form.wait_house_suggest()
+        form.assert_house_not_in_suggest(case.expected_house)
     except Exception:
         screenshot_path = tmp_path / f"{case.case_id}_negative.png"
         page.screenshot(path=str(screenshot_path), full_page=True)

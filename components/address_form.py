@@ -307,6 +307,12 @@ class AddressForm:
                 continue
         return rows
 
+    def _street_rank(self, street_text: str, expected: str) -> tuple[int, int]:
+        st = self._norm_text(street_text)
+        exp = self._norm_text(expected)
+        exact = 0 if st == exp or st in {f"{exp} ул", f"{exp} ул.", f"{exp} улица"} else 1
+        return (exact, len(st))
+
     def _click_visible_text(self, text: str, timeout_ms: int = 8000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         last_error: Exception | None = None
@@ -420,14 +426,10 @@ class AddressForm:
                     row for row in strict_rows if self._is_region_match(row[2], preferred_region)
                 ]
                 candidate_pool = region_rows or strict_rows
-
-                def _street_rank(street_text: str) -> tuple[int, int]:
-                    st = self._norm_text(street_text)
-                    exp = self._norm_text(expected)
-                    exact = 0 if st == exp or st in {f"{exp} ул", f"{exp} ул.", f"{exp} улица"} else 1
-                    return (exact, len(st))
-
-                best_item, best_street, best_city = min(candidate_pool, key=lambda row: _street_rank(row[1]))
+                best_item, best_street, best_city = min(
+                    candidate_pool,
+                    key=lambda row: self._street_rank(row[1], expected),
+                )
                 best_item.click(timeout=3000, force=True)
                 self.page.wait_for_timeout(250)
                 self._last_selected_street = {
@@ -498,6 +500,38 @@ class AddressForm:
                 street_input.press("ArrowDown")
                 street_input.press("Enter")
 
+    def try_select_street(self, expected: str, preferred_region: str | None = None) -> bool:
+        self._last_selected_street = None
+        street_rows = self._collect_street_rows()
+        if not street_rows:
+            return False
+
+        strict_rows = [row for row in street_rows if self._is_strict_street_match(row[1], expected)]
+        if not strict_rows:
+            return False
+
+        candidate_pool = strict_rows
+        if preferred_region:
+            region_rows = [row for row in strict_rows if self._is_region_match(row[2], preferred_region)]
+            if not region_rows:
+                return False
+            candidate_pool = region_rows
+
+        best_item, best_street, best_city = min(
+            candidate_pool,
+            key=lambda row: self._street_rank(row[1], expected),
+        )
+        best_item.click(timeout=3000, force=True)
+        self.page.wait_for_timeout(250)
+        self._last_selected_street = {
+            "expected": expected,
+            "preferred_region": preferred_region,
+            "selected_street": best_street,
+            "selected_city": best_city,
+            "strategy": "street_list_strict_try",
+        }
+        return True
+
     def fill_house(self, value: str) -> None:
         self.wait_house_field_ready()
         selector = first_selector(self.form_config.selectors, "house")
@@ -525,6 +559,17 @@ class AddressForm:
         )
 
     def assert_house_not_in_suggest(self, unexpected: str) -> None:
+        unexpected_norm = self._norm_house(unexpected)
+        visible_house_suggestions = self._collect_visible_suggest_items("#house-list")
+        if visible_house_suggestions:
+            for item in visible_house_suggestions:
+                item_main = (item or "").splitlines()[0].strip()
+                if self._norm_house(item_main) == unexpected_norm:
+                    raise AssertionError(
+                        f"Unexpected house in suggest: {unexpected}. "
+                        f"Matched house item: '{item_main}'"
+                    )
+            return
         assert not self._has_visible_text(unexpected), f"Unexpected house in suggest: {unexpected}"
 
     def select_house(self, expected: str) -> None:
