@@ -99,6 +99,7 @@ powershell -ExecutionPolicy Bypass -File scripts/run_form_matrix_all.ps1 `
 - `artifacts/reports/<site>/<url_type>/form_matrix_summary.md`
 - `artifacts/reports/<site>/_all_url_types_form_matrix_summary.md`
 - `artifacts/reports/<site>/datasets/<run_tag>/dataset_suite_summary.md`
+- `artifacts/reports/cases/<pytest_nodeid>.md` — мини-репорт по каждому кейсу.
 
 Параметр Jenkins `RUN_SUITE`:
 
@@ -122,6 +123,8 @@ powershell -ExecutionPolicy Bypass -File scripts/run_form_matrix_all.ps1 `
 
 - `dataset_suite_summary.md` и `form_matrix_summary.md` содержат блок `Баг-репорт (RU)` с полями:
   `Кейс`, `Шаги`, `Ожидаемый результат`, `Фактический результат`, `Описание бага`.
+- Для каждого pytest-кейса дополнительно формируется отдельный markdown-репорт и attachment
+  `mini_bug_report_ru` в Allure (скачиваемый файл внутри конкретного теста).
 
 Параметры для `RUN_SUITE=single_case`:
 
