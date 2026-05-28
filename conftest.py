@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pytest
 
-from helpers.allure_attachments import attach_markdown_file, attach_video_file
+from helpers.allure_attachments import attach_markdown_file, attach_text, attach_video_file
 from helpers.config_loader import load_config
 from helpers.test_case_factory import (
     ab_cookie_cases,
@@ -301,12 +301,16 @@ def pytest_runtest_makereport(item, call):
     report = outcome.get_result()
     if report.when in {"setup", "call"} and report.failed:
         setattr(item, "_test_failed", True)
+        if getattr(item, "_failed_stage_report", None) is None:
+            setattr(item, "_failed_stage_report", report)
     if report.when != "teardown":
         return
 
     if report.failed or getattr(item, "_test_failed", False):
-        report_md = _render_case_mini_report(item, report)
+        source_report = getattr(item, "_failed_stage_report", report)
+        report_md = _render_case_mini_report(item, source_report)
         report_file = _write_case_report_file(item, report_md)
+        attach_text("mini_bug_report_ru_text", report_md)
         attach_markdown_file(report_file, name="mini_bug_report_ru")
 
     video_dir = getattr(item, "_video_dir", None)
