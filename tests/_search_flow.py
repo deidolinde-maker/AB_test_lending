@@ -96,7 +96,14 @@ def run_search_case(
         form.assert_house_in_suggest(case.expected_house)
         form.select_house(case.expected_house)
 
-        actual_id = form.get_selected_house_id()
+        # Hidden ID fields can be populated asynchronously right after house selection.
+        # Poll for a short period to reduce false negatives from UI timing races.
+        actual_id = None
+        for _ in range(12):
+            actual_id = form.get_selected_house_id()
+            if actual_id:
+                break
+            page.wait_for_timeout(150)
         assert str(actual_id) == str(case.expected_id), (
             f"Step: Validate selected address ID\nExpected: {case.expected_id}\nActual: {actual_id}"
         )
