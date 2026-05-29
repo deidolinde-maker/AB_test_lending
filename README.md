@@ -1,145 +1,209 @@
-# testNewAddressPoisk — пакет спецификаций для Codex
+# AB_test_lending_e2e
 
-Этот архив содержит полноценный план разработки автотестов первой итерации А/Б-теста поиска новой адрески на лендингах.
+Автотесты первой итерации A/B-поиска адреса для лендингов (`v1` vs `v2`) с запуском в Jenkins и отчетами в Allure.
 
-Главное правило реализации: **каждый кейс должен быть отдельным pytest test item**. Нельзя делать один тест, который циклом прогоняет все адреса, URL или формы.
+## Что проверяет проект
 
-## Рабочий репозиторий
+- корректную установку и сохранение A/B cookie (`testNewAddressPoisk`);
+- сценарии поиска адреса по улицам/домам для вариантов `A` и `B`;
+- соответствие ожидаемого ID (`address_id` для `A`, `house_id` для `B`);
+- изоляцию старой/новой адрески;
+- смежные и запрещенные регионы;
+- смену региона внутри формы без смены URL;
+- региональную навигацию;
+- словарь синонимов;
+- отдельные технические проверки (`ab_cookie`).
 
-Код автотестов планируется вести в репозитории:
+## Технологии
+
+- `pytest`
+- `pytest-playwright`
+- `playwright`
+- `allure-pytest`
+
+## Структура
 
 ```text
-https://github.com/deidolinde-maker/AB_test_lending.git
+AB_test_lending_repo/
+  config/
+    sites.yaml
+    forms.yaml
+    search_data.yaml
+    synonyms.yaml
+  tests/
+    test_search_variant_a.py
+    test_search_variant_b.py
+    test_search_isolation.py
+    test_adjacent_search.py
+    test_forbidden_region.py
+    test_synonyms.py
+    test_region_change_inside_form.py
+    test_regional_navigation.py
+    test_ab_cookie.py
+  scripts/
+    run_form_matrix.sh
+    run_form_matrix_all.sh
+    run_dataset_suite.sh
+    summarize_form_matrix.py
+    summarize_dataset_suite.py
+  Jenkinsfile
+  conftest.py
 ```
 
-Важно: этот пакет спецификаций не нужно автоматически коммитить в репозиторий. Репозиторий указан как место дальнейшей разработки и реализации проекта.
+## Датасеты
 
-## Что внутри
+Поддерживаемые датасеты:
 
-```text
-00_full_development_plan.md      Полная спека разработки
-01_codex_prompt.md               Короткий промт для Codex
-02_test_cases_matrix.md          Матрица тестов и принципы генерации кейсов
-03_architecture.md               Архитектура проекта и Page Object
-04_definition_of_done.md         Definition of Done
-config/sites.yaml                Шаблон сайтов и региональных URL
-config/forms.yaml                Справочник форм и селекторов из входных файлов
-config/search_data.yaml          Тестовые адреса A/v1 и B/v2
-config/synonyms.yaml             Справочник синонимов из входных файлов
-docs/open_questions.md           Открытые вопросы и ограничения
-docs/source_files/               Исходные приложенные файлы задачи
-```
+- `main_search`
+- `isolation`
+- `adjacent`
+- `forbidden_region`
+- `synonyms`
+- `region_change`
+- `regional_navigation`
+- `ab_cookie`
 
-## Быстрый запуск будущего проекта
+Источник тестовых адресов и ожиданий: `config/search_data.yaml`.
+
+## Локальный запуск
+
+### 1) Установка
 
 ```bash
-pytest --site=mts_internet_online --variant=A --dataset=main_search -n auto
-pytest --site=mts_internet_online --variant=B --dataset=main_search -n auto
-pytest --site=mts_internet_online --dataset=forbidden_region -n auto
-pytest --site=mts_internet_online --dataset=synonyms -n auto
+python -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+python -m playwright install chromium
 ```
 
-## Scope первой итерации
+### 2) Базовые команды
 
-Входит:
+Важно: e2e-сценарии запускаются с `--run-e2e`.
 
-- cookie `testNewAddressPoisk`;
-- назначение A/B в чистом контексте;
-- управляемый запуск A и B через cookie;
-- поиск улиц и домов в A/v1;
-- поиск улиц и домов в B/v2;
-- проверка `address_id` для A;
-- проверка `house_id` для B;
-- проверка v2 endpoints для B;
-- изоляция старой и новой адрески;
-- смежный поиск Москва / Московская область / Балашиха;
-- негативная проверка Петрозаводска;
-- смена региона внутри формы без изменения URL;
-- региональная навигация без региона → Москва → Балашиха → Домодедово;
-- синонимы;
-- Allure-артефакты.
+```bash
+# A / main search
+pytest -q -s tests/test_search_variant_a.py::test_search_variant_a \
+  --run-e2e --site mts_internet_online --dataset main_search --variant A
 
-Не входит:
+# B / main search
+pytest -q -s tests/test_search_variant_b.py::test_search_variant_b \
+  --run-e2e --site mts_internet_online --dataset main_search --variant B
 
-- отправка заявок;
-- проверка `orders`;
-- CRM;
-- ТС;
-- тарифы;
-- Telegram-алерты.
-
-## Jenkins запуск
-
-Для CI добавлены:
-
-- `Jenkinsfile` — пайплайн установки зависимостей, прогона матрицы и архивации артефактов;
-- `scripts/run_form_matrix.ps1` — матрица для одного `url_type` + отчет;
-- `scripts/run_form_matrix_all.ps1` — матрица для всех `url_type` + общий отчет;
-- `scripts/summarize_form_matrix.py` — сводка по статусам и сигнатурам падений;
-- `scripts/run_dataset_suite.ps1` — прогон полного набора датасетов первой итерации;
-- `scripts/summarize_dataset_suite.py` — сводка по датасетам.
-- Linux-раннеры для Jenkins:
-  - `scripts/run_form_matrix.sh`
-  - `scripts/run_form_matrix_all.sh`
-  - `scripts/run_dataset_suite.sh`
-
-Пример локального запуска под Jenkins-режим:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/run_form_matrix_all.ps1 `
-  -Site mts_internet_online `
-  -Pytest pytest `
-  -Python python `
-  -FailOnTestFailures $false
+# Любой датасет через общий раннер
+bash scripts/run_dataset_suite.sh \
+  --site mts_internet_online \
+  --dataset-filter regional_navigation \
+  --url-type domain_without_region \
+  --variant all \
+  --form all \
+  --case-id all \
+  --python .venv/bin/python \
+  --pytest pytest \
+  --fail-on-test-failures false
 ```
 
-Отчеты сохраняются в:
+### 3) Полезные фильтры
 
-- `artifacts/allure-results/<site>/...`
-- `artifacts/reports/<site>/<url_type>/form_matrix_summary.md`
-- `artifacts/reports/<site>/_all_url_types_form_matrix_summary.md`
-- `artifacts/reports/<site>/datasets/<run_tag>/dataset_suite_summary.md`
-- `artifacts/reports/cases/<pytest_nodeid>.md` — мини-репорт по каждому кейсу.
+- `--dataset`: выбор датасета;
+- `--variant`: `all|A|B`;
+- `--url-type`: `all|domain_without_region|moscow_subdomain|balashikha_folder|domodedovo_folder`;
+- `--form`: `all|profit|connection|checkaddress|undecided|moving|express_connection`;
+- `--case-id`: конкретный кейс или `all`;
+- `--video-mode`: `off|on_failure|always` (по умолчанию `on_failure`).
 
-Параметр Jenkins `RUN_SUITE`:
+## Jenkins
 
-- `form_matrix` — только A/B form matrix;
-- `dataset_suite` — только датасеты `main_search/isolation/adjacent/forbidden_region/synonyms`;
-- `both` — оба контура;
-- `single_case` — запуск одного кейса по фильтрам.
+Pipeline описан в `Jenkinsfile` и рассчитан на Linux-агент.
 
-Фильтрация форм по актуальности:
+### Параметры job
 
-- если в `sites.yaml` для `url_type` задан `required_forms_by_url_type`, в запуск попадают только эти формы;
-- неактуальные формы не запускаются и не попадают в отчет (без `skip`-шума).
+- `SITE` — сайт из `config/sites.yaml`.
+- `PYTEST_BIN` — команда pytest (по умолчанию `pytest`).
+- `PYTHON_BIN` — python (по умолчанию `python3`).
+- `RUN_SUITE` — `form_matrix | dataset_suite | both | single_case`.
+- `FAIL_ON_TEST_FAILURES` — фейлить build при падениях тестов.
+- `CASE_URL_TYPE` — для `RUN_SUITE=single_case`.
+- `CASE_VARIANT` — `all | A | B`.
+- `CASE_FORM` — `all | profit | connection | checkaddress | undecided | moving | express_connection`.
+- `CASE_DATASET` — один из датасетов.
+- `CASE_ID` — `all` или конкретный `case_id` из `search_data`.
+- `ENABLE_PERIODIC_ARTIFACT_PURGE` — включить периодическую очистку архивов.
+- `PERIODIC_PURGE_EVERY` — каждые N билдов (N >= 2).
 
-Режим записи видео в e2e:
+### Режимы запуска
 
-- по умолчанию: `--video-mode=on_failure` (видео сохраняется только на падениях);
-- `--video-mode=always` — сохранять видео всегда (для глубокого дебага);
-- `--video-mode=off` — полностью отключить запись видео.
+- `form_matrix` — прогон A/B по матрице форм и url_type.
+- `dataset_suite` — прогон всех датасетов.
+- `both` — оба режима подряд.
+- `single_case` — таргетированный запуск по фильтрам.
 
-Формат финальных сводок:
+### Кэш и подготовка окружения
 
-- `dataset_suite_summary.md` и `form_matrix_summary.md` содержат блок `Баг-репорт (RU)` с полями:
-  `Кейс`, `Шаги`, `Ожидаемый результат`, `Фактический результат`, `Описание бага`.
-- Для каждого pytest-кейса дополнительно формируется отдельный markdown-репорт и attachment
-  `mini_bug_report_ru` в Allure (скачиваемый файл внутри конкретного теста).
+- Python зависимости кэшируются в `/var/lib/jenkins/cache/pip`.
+- Playwright браузеры кэшируются в `/var/lib/jenkins/cache/ms-playwright`.
+- Переустановка зависимостей только при изменении `requirements.txt` (SHA-файл `.requirements.sha256`).
 
-Параметры для `RUN_SUITE=single_case`:
+## Отчеты и артефакты
 
-- `CASE_DATASET` — один датасет (`main_search/isolation/adjacent/forbidden_region/synonyms`);
-- `CASE_URL_TYPE` — `domain_without_region|moscow_subdomain|balashikha_folder|domodedovo_folder`;
-- `CASE_VARIANT` — `A` или `B`;
-- `CASE_FORM` — `all|profit|connection|checkaddress|undecided|moving|express_connection`;
-  `all` запускает все формы, применимые для выбранного `url_type` (с учетом фильтра актуальности форм).
-- `CASE_ID` — выпадающий список `case_id` из `config/search_data.yaml` (или `all`).
+### Allure
 
-Кэш и очистка в Jenkins:
+- Allure-results собираются в `artifacts/allure-results/...`.
+- В `post` шаге пайплайна результаты мерджатся в `artifacts/allure-results-merged`.
+- Отчет публикуется в Jenkins через плагин Allure.
 
-- кэш Python пакетов: `PIP_CACHE_DIR=${JENKINS_HOME}\\cache\\pip`;
-- кэш Playwright браузеров: `PLAYWRIGHT_BROWSERS_PATH=${JENKINS_HOME}\\cache\\ms-playwright`;
-- зависимости переустанавливаются только при изменении `requirements.txt` (по SHA256);
-- перед каждым запуском очищаются `artifacts/allure-results`, `artifacts/allure-results-merged`, `artifacts/reports`;
-- ретеншн билдов/артефактов через `buildDiscarder` по дням и количеству;
-- периодическая очистка старых `archive` и `allure-report` (параметры `ENABLE_PERIODIC_ARTIFACT_PURGE`, `PERIODIC_PURGE_EVERY`).
+### Сводки
+
+- Матрица форм:
+  - `artifacts/reports/<site>/<url_type>/form_matrix_summary.md`
+  - `artifacts/reports/<site>/_all_url_types_form_matrix_summary.md`
+- Датасеты:
+  - `artifacts/reports/<site>/datasets/<run_tag>/dataset_suite_summary.md`
+
+### Мини-баг-репорт по кейсу
+
+Для упавших тестов автоматически формируется:
+
+- текстовый attachment `mini_bug_report_ru_text` в Allure;
+- markdown-файл `mini_bug_report_ru` (attachment);
+- файл на диске: `artifacts/reports/cases/<pytest_nodeid>.md`.
+
+Шаблон отчета:
+
+- Кейс
+- Шаги
+- Ожидаемый результат
+- Фактический результат
+- Описание бага
+
+## Очистка и контроль объема
+
+- Перед прогоном очищаются:
+  - `artifacts/allure-results`
+  - `artifacts/allure-results-merged`
+  - `artifacts/reports`
+- После прогона очищаются:
+  - `artifacts/videos`
+  - `.pytest_cache`
+  - `__pycache__`
+- Периодическая очистка Jenkins-архивов работает по параметрам purge.
+
+## Важные нюансы
+
+- Для `B` часть кейсов может падать из-за реального продуктового поведения (например, v1 endpoint вместо v2 или неожиданный регион в саджесте) — это фиксируется как валидный баг-сигнал.
+- `single_case` с `CASE_VARIANT=all` запускает оба варианта.
+- `CASE_FORM=all` запускает все формы, применимые для выбранного URL.
+
+## Быстрый smoke после изменений
+
+```bash
+bash scripts/run_dataset_suite.sh \
+  --site mts_internet_online \
+  --dataset-filter ab_cookie \
+  --url-type domain_without_region \
+  --variant all \
+  --form all \
+  --case-id all \
+  --python .venv/bin/python \
+  --pytest pytest \
+  --fail-on-test-failures false
+```
