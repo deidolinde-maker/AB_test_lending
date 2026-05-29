@@ -425,6 +425,16 @@ class AddressForm:
                 region_rows = [
                     row for row in strict_rows if self._is_region_match(row[2], preferred_region)
                 ]
+                if preferred_region and not region_rows:
+                    visible = self._collect_visible_suggest_items("#street-list")
+                    strict_debug = [
+                        {"street": row[1], "city": row[2]}
+                        for row in strict_rows[:10]
+                    ]
+                    raise AssertionError(
+                        f"Street '{expected}' was found, but not for region '{preferred_region}'. "
+                        f"Strict matches: {strict_debug}. Visible street suggestions: {visible}"
+                    )
                 candidate_pool = region_rows or strict_rows
                 best_item, best_street, best_city = min(
                     candidate_pool,
