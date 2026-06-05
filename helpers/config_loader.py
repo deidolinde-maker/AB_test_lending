@@ -247,6 +247,8 @@ def build_search_case(
         expected_id_type=raw_case["expected_id_type"],
         address_source=raw_case["address_source"],
         dataset=dataset,
+        expected_locality_id=raw_case.get("expected_locality_id"),
+        expected_locality_name=raw_case.get("expected_locality_name"),
         is_adjacent=bool(raw_case.get("is_adjacent", False)),
         expected_result=raw_case.get("expected_result", "found"),
     )

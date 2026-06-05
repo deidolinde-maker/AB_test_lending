@@ -34,7 +34,7 @@ def run_search_case(
     site_config,
     form_config,
     tmp_path: Path,
-    verify_v2_endpoints: bool = False,
+    verify_search_payload: bool = False,
 ) -> None:
     recorder = NetworkRecorder(page, case_id=case.case_id, variant=case.variant)
     console = ConsoleRecorder(page)
@@ -108,8 +108,15 @@ def run_search_case(
             f"Step: Validate selected address ID\nExpected: {case.expected_id}\nActual: {actual_id}"
         )
 
-        if verify_v2_endpoints:
-            recorder.assert_v2_endpoints_for_b()
+        if verify_search_payload:
+            recorder.assert_b_search_payload(
+                expected_id=case.expected_id,
+                expected_street=case.expected_street,
+                expected_house=case.expected_house,
+                expected_region_id=case.region_id,
+                expected_locality_id=getattr(case, "expected_locality_id", None),
+                expected_locality_name=getattr(case, "expected_locality_name", None),
+            )
     except Exception:
         screenshot_path = tmp_path / f"{case.case_id}.png"
         page.screenshot(path=str(screenshot_path), full_page=True)

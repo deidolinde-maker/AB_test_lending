@@ -25,6 +25,8 @@ class SearchCase:
     expected_id_type: IdType
     address_source: AddressSource
     dataset: str
+    expected_locality_id: int | None = None
+    expected_locality_name: str | None = None
     is_adjacent: bool = False
     expected_result: ExpectedResult = "found"
 

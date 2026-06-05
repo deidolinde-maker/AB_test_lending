@@ -50,3 +50,13 @@ def test_business_form_is_not_generated_in_iteration_one(loaded_config):
 def test_synonym_dataset_has_cases_for_real_addresses(loaded_config):
     cases = synonym_cases(loaded_config)
     assert cases, "synonym_cases should not be empty for current config"
+
+
+def test_b_search_cases_define_locality_context(loaded_config):
+    cases = main_search_cases(loaded_config, "B")
+    lipovy = next(case for case in cases if case.case_id == "B_moscow_lipovy_park")
+    domodedovo = next(case for case in cases if case.case_id == "B_mo_domodedovo_kolomiytsa")
+    assert lipovy.expected_locality_id == 16
+    assert lipovy.expected_locality_name == "п Коммунарка"
+    assert domodedovo.expected_locality_id == 26
+    assert domodedovo.expected_locality_name == "мкр Центральный"

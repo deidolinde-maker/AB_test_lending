@@ -88,6 +88,22 @@ def _build_bug_report_row(row: DatasetResult) -> BugReportRow:
     message = row.message or ""
     case_name = _extract_case_name(row.name)
 
+    if "search_payload_mismatch" in message or "Validate B search payload" in message:
+        observed = ""
+        m = re.search(r"Actual:\s*observed search payloads =\s*(.+)$", message, flags=re.S)
+        if m:
+            observed = m.group(1).strip()
+        return BugReportRow(
+            case_name=case_name,
+            steps="Открыть форму, ввести улицу и дом, выбрать подсказку и проверить payload поискового ответа.",
+            expected=(
+                "Для B-кейса payload поиска должен содержать выбранную запись адреса "
+                "(id, region_id, street_name, house и locality-поля при наличии)."
+            ),
+            actual=observed or _short_line(message),
+            description="Тест теперь проверяет семантику найденного адреса по payload, а не буквальный маршрут запроса.",
+        )
+
     if "Expected streets request to hit v2 endpoint" in message:
         observed = ""
         m = re.search(r"Observed search-like URLs:\s*(.+)$", message, flags=re.S)

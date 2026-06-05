@@ -13,5 +13,5 @@ def test_adjacent_search(case, page, context, tmp_path, site_config_map, form_co
         site_config=site_config_map[case.site],
         form_config=form_config_map[case.form],
         tmp_path=tmp_path,
-        verify_v2_endpoints=(case.variant == "B"),
+        verify_search_payload=(case.variant == "B"),
     )

@@ -48,6 +48,8 @@ addresses:
     address_source: "v2"
     region: "Москва"
     region_id: 77
+    expected_locality_id: 16
+    expected_locality_name: "п Коммунарка"
     street_query: "Липовый парк"
     expected_street: "Липовый парк"
     house_query: "2"
@@ -62,6 +64,8 @@ addresses:
     address_source: "v2"
     region: "Домодедово"
     region_id: 50
+    expected_locality_id: 26
+    expected_locality_name: "мкр Центральный"
     street_query: "Коломийца"
     expected_street: "Коломийца"
     house_query: "8/1"

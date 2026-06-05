@@ -236,7 +236,7 @@ def _build_expected_result(meta: dict) -> str:
         if meta.get("expected_id") is not None:
             expected += f" ID `{meta['expected_id']}` совпадает с ожидаемым."
         if meta.get("variant") == "B":
-            expected += " Для варианта B должны использоваться v2 endpoint'ы."
+            expected += " Для варианта B проверяется payload поиска с нужной записью адреса."
         return expected
     return "Сценарий выполняется без ошибок, фактическое поведение совпадает с ожиданием."
 
@@ -250,8 +250,10 @@ def _short_failure_text(longrepr_text: str, max_lines: int = 8) -> str:
 
 def _bug_description_from_failure(longrepr_text: str) -> str:
     text = longrepr_text.lower()
+    if "search_payload_mismatch" in text or "validate b search payload" in text:
+        return "Payload поиска не содержит ожидаемую запись адреса для варианта B."
     if "expected streets request to hit v2 endpoint" in text:
-        return "Вариант B использует v1 endpoint вместо v2 для поиска улиц/домов."
+        return "Вариант B использует неверный маршрут поиска улиц/домов."
     if "required form" in text and "is not present" in text:
         return "Обязательная форма отсутствует на странице для выбранного URL."
     if "validate selected address id" in text:

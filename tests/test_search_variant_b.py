@@ -13,5 +13,5 @@ def test_search_variant_b(case, page, context, tmp_path, site_config_map, form_c
         site_config=site_config_map[case.site],
         form_config=form_config_map[case.form],
         tmp_path=tmp_path,
-        verify_v2_endpoints=True,
+        verify_search_payload=True,
     )

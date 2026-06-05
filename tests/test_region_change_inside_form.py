@@ -13,5 +13,5 @@ def test_region_change_inside_form_does_not_change_url(case, page, context, tmp_
         site_config=site_config_map[case.site],
         form_config=form_config_map[case.form],
         tmp_path=tmp_path,
-        verify_v2_endpoints=(case.variant == "B"),
+        verify_search_payload=(case.variant == "B"),
     )

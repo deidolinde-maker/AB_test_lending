@@ -86,6 +86,59 @@ class NetworkRecorder:
         except Exception:
             return None
 
+    @staticmethod
+    def _extract_search_records(payload) -> list[dict]:
+        records: list[dict] = []
+        seen: set[str] = set()
+
+        def add(record: dict) -> None:
+            key = json.dumps(record, sort_keys=True, ensure_ascii=False)
+            if key in seen:
+                return
+            seen.add(key)
+            records.append(record)
+
+        def walk(node) -> None:
+            if isinstance(node, list):
+                for item in node:
+                    walk(item)
+                return
+            if not isinstance(node, dict):
+                return
+
+            data = node.get("data")
+            if isinstance(data, dict):
+                add(data)
+                return
+            if isinstance(data, list):
+                for item in data:
+                    walk(item)
+                return
+
+            if any(
+                key in node
+                for key in ("id", "street_name", "house", "street_id", "locality_id", "locality_name", "region_id")
+            ):
+                add(node)
+                return
+
+            for value in node.values():
+                if isinstance(value, (dict, list)):
+                    walk(value)
+
+        walk(payload)
+        return records
+
+    @staticmethod
+    def _record_preview(record: dict) -> dict:
+        keys = ("id", "region_id", "street_id", "house", "street_name", "street_type", "locality_id", "locality_name")
+        preview = {key: record.get(key) for key in keys if key in record}
+        if "full" in record:
+            preview["full"] = record.get("full")
+        if "url" in record:
+            preview["url"] = record.get("url")
+        return preview
+
     def build_b_endpoint_summary(self) -> list[dict]:
         summary: list[dict] = []
         for event in self.events:
@@ -93,16 +146,20 @@ class NetworkRecorder:
             if not any(
                 marker in lowered
                 for marker in (
-                    "/api_protected/v2/search/streets",
-                    "/api_protected/v2/search/houses",
-                    "/wp-json/cf7proxy/v2/streets",
-                    "/wp-json/cf7proxy/v2/houses",
+                    "/search/",
+                    "/streets",
+                    "/houses",
+                    "/autocomplete",
+                    "/suggest",
+                    "/api_protected/",
+                    "/cf7proxy/",
                 )
             ):
                 continue
             payload = self._safe_json_loads(event.response_snippet)
             payload_type = type(payload).__name__ if payload is not None else None
             payload_preview = None
+            records = self._extract_search_records(payload)
             if isinstance(payload, dict):
                 payload_preview = {k: type(v).__name__ for k, v in list(payload.items())[:8]}
             elif isinstance(payload, list):
@@ -120,41 +177,71 @@ class NetworkRecorder:
                     "query_params": event.query_params,
                     "payload_type": payload_type,
                     "payload_preview": payload_preview,
+                    "records": [self._record_preview(record) for record in records[:5]],
                     "response_snippet": event.response_snippet,
                 }
             )
         return summary
 
-    def assert_v2_endpoints_for_b(self) -> None:
+    def assert_b_search_payload(
+        self,
+        *,
+        expected_id: int,
+        expected_street: str,
+        expected_house: str,
+        expected_region_id: int,
+        expected_locality_id: int | None = None,
+        expected_locality_name: str | None = None,
+    ) -> None:
         if self.variant != "B":
             return
-        urls = [event.url.lower() for event in self.events]
-        observed_urls = self._format_observed_search_urls()
-        streets_ok = any(
-            marker in url
-            for marker in (
-                "/api_protected/v2/search/streets",
-                "/wp-json/cf7proxy/v2/streets",
+        summary = self.build_b_endpoint_summary()
+        observed_records: list[dict] = []
+        for item in summary:
+            observed_records.extend(item.get("records") or [])
+
+        def _match(record: dict) -> bool:
+            try:
+                record_id = int(record.get("id"))
+                record_region_id = int(record.get("region_id"))
+            except Exception:
+                return False
+            if record_id != int(expected_id):
+                return False
+            if record_region_id != int(expected_region_id):
+                return False
+            if str(record.get("street_name", "")).strip() != str(expected_street).strip():
+                return False
+            if str(record.get("house", "")).strip() != str(expected_house).strip():
+                return False
+            if expected_locality_id is not None:
+                try:
+                    if int(record.get("locality_id")) != int(expected_locality_id):
+                        return False
+                except Exception:
+                    return False
+            if expected_locality_name is not None:
+                if str(record.get("locality_name", "")).strip() != str(expected_locality_name).strip():
+                    return False
+            return True
+
+        if any(_match(record) for record in observed_records):
+            return
+
+        locality_text = ""
+        if expected_locality_id is not None or expected_locality_name is not None:
+            locality_text = (
+                f", locality_id={expected_locality_id!r}"
+                if expected_locality_name is None
+                else f", locality_id={expected_locality_id!r}, locality_name={expected_locality_name!r}"
             )
-            for url in urls
-        )
-        houses_ok = any(
-            marker in url
-            for marker in (
-                "/api_protected/v2/search/houses",
-                "/wp-json/cf7proxy/v2/houses",
-            )
-            for url in urls
-        )
-        assert streets_ok, (
-            "Expected streets request to hit v2 endpoint "
-            "(/api_protected/v2/search/streets or /wp-json/cf7proxy/v2/streets). "
-            f"Observed search-like URLs: {observed_urls}"
-        )
-        assert houses_ok, (
-            "Expected houses request to hit v2 endpoint "
-            "(/api_protected/v2/search/houses or /wp-json/cf7proxy/v2/houses). "
-            f"Observed search-like URLs: {observed_urls}"
+        raise AssertionError(
+            "Step: Validate B search payload\n"
+            "Error code: search_payload_mismatch\n"
+            "Expected: search payload should resolve the selected address record "
+            f"(id={expected_id!r}, region_id={expected_region_id!r}, street={expected_street!r}, "
+            f"house={expected_house!r}{locality_text})\n"
+            f"Actual: observed search payloads = {[{'url': item.get('url'), 'records': item.get('records') or []} for item in summary]}"
         )
 
     def _format_observed_search_urls(self, limit: int = 12) -> list[str]:
