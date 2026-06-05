@@ -142,24 +142,12 @@ class NetworkRecorder:
     def build_b_endpoint_summary(self) -> list[dict]:
         summary: list[dict] = []
         for event in self.events:
-            lowered = event.url.lower()
-            if not any(
-                marker in lowered
-                for marker in (
-                    "/search/",
-                    "/streets",
-                    "/houses",
-                    "/autocomplete",
-                    "/suggest",
-                    "/api_protected/",
-                    "/cf7proxy/",
-                )
-            ):
-                continue
             payload = self._safe_json_loads(event.response_snippet)
+            records = self._extract_search_records(payload)
+            if not records:
+                continue
             payload_type = type(payload).__name__ if payload is not None else None
             payload_preview = None
-            records = self._extract_search_records(payload)
             if isinstance(payload, dict):
                 payload_preview = {k: type(v).__name__ for k, v in list(payload.items())[:8]}
             elif isinstance(payload, list):
