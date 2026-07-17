@@ -54,7 +54,7 @@ addresses:
     expected_street: "Липовый парк"
     house_query: "2"
     expected_house: "2"
-    expected_id: 1067
+    expected_id: 3633
     expected_id_type: "house_id"
     is_adjacent: false
     notes: "v2 Москва: округ Новомосковский, Коммунарка, ул. Липовый парк, д. 2"
@@ -70,7 +70,7 @@ addresses:
     expected_street: "Коломийца"
     house_query: "8/1"
     expected_house: "8/1"
-    expected_id: 1075
+    expected_id: 3627
     expected_id_type: "house_id"
     is_adjacent: false
     notes: "v2 Московская область: ул. Коломийца, д. 8/1, Домодедово"
@@ -84,7 +84,7 @@ addresses:
     expected_street: "Чехова"
     house_query: "10"
     expected_house: "10"
-    expected_id: 101249
+    expected_id: 120991
     expected_id_type: "house_id"
     is_adjacent: false
     notes: "v2 Балашиха: ул. Чехова, д. 10"
@@ -112,7 +112,7 @@ forbidden_region_cases:
     expected_street: "Тапиола"
     house_query: "3"
     expected_house: "3"
-    expected_id: 18984
+    expected_id: 3465
     expected_id_type: "house_id"
     expected_result: "not_found"
 
