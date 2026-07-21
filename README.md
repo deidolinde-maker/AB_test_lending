@@ -14,6 +14,14 @@
 - словарь синонимов;
 - отдельные технические проверки (`ab_cookie`).
 
+Дополнительно поддерживается второй site scope для stage-площадок:
+
+- `stage_project`:
+  - `https://stage-project.ru/`;
+  - `https://moskva.stage-project.ru/`;
+  - `https://balashiha.stage-project.ru/`;
+  - `https://domodedovo.stage-project.ru/`.
+
 ## Технологии
 
 - `pytest`

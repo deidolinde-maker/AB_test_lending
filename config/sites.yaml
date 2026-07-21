@@ -67,3 +67,67 @@ sites:
       - "Смена региона внутри формы не должна менять текущий URL страницы."
       - "Региональная навигация страницы проверяется отдельным сценарием."
       - "Для региональной навигации cookie testNewAddressPoisk не должна изменяться."
+
+  stage_project:
+    title: "МТС Интернет stage"
+    enabled: true
+    base_domain: "stage-project.ru"
+
+    urls:
+      domain_without_region: "https://stage-project.ru/"
+      moscow_subdomain: "https://moskva.stage-project.ru/"
+      balashikha_folder: "https://balashiha.stage-project.ru/"
+      domodedovo_folder: "https://domodedovo.stage-project.ru/"
+
+    expected_regions:
+      domain_without_region: "Москва"
+      moscow_subdomain: "Москва"
+      balashikha_folder: "Балашиха"
+      domodedovo_folder: "Домодедово"
+
+    allowed_region_pool:
+      - "Москва"
+      - "Московская область"
+      - "Балашиха"
+      - "Домодедово"
+
+    required_forms_by_url_type:
+      domain_without_region:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      moscow_subdomain:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      balashikha_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      domodedovo_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+
+    regional_navigation_chain:
+      - step: "open_without_region"
+        url_type: "domain_without_region"
+        expected_url: "https://stage-project.ru/"
+        expected_region: "Москва"
+
+      - step: "go_to_moscow"
+        expected_url: "https://moskva.stage-project.ru/"
+        expected_region: "Москва"
+
+      - step: "go_to_balashikha"
+        expected_url: "https://balashiha.stage-project.ru/"
+        expected_region: "Балашиха"
+
+      - step: "go_to_domodedovo"
+        expected_url: "https://domodedovo.stage-project.ru/"
+        expected_region: "Домодедово"
+
+    notes:
+      - "Смена региона внутри формы не должна менять текущий URL страницы."
+      - "Региональная навигация страницы проверяется отдельным сценарием."
+      - "Для региональной навигации cookie testNewAddressPoisk не должна изменяться."
