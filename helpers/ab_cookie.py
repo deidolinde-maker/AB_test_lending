@@ -4,6 +4,7 @@ import time
 from typing import Literal
 
 AB_COOKIE_NAME = "testNewAddressPoisk"
+THEME_AB_COOKIE_NAME = "theme_ab_variant"
 YM_UID_COOKIE_NAME = "_ym_uid"
 
 
@@ -36,6 +37,18 @@ def set_ab_cookie(context, url: str, variant: Literal["A", "B"]) -> None:
             {
                 "name": AB_COOKIE_NAME,
                 "value": variant,
+                "url": url,
+            }
+        ]
+    )
+
+
+def set_theme_ab_cookie(context, url: str, value: str = "a") -> None:
+    context.add_cookies(
+        [
+            {
+                "name": THEME_AB_COOKIE_NAME,
+                "value": value,
                 "url": url,
             }
         ]

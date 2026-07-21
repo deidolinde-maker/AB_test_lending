@@ -4,6 +4,7 @@ from helpers.ab_cookie import (
     assert_ab_cookie_absent,
     assert_ab_cookie_not_changed,
     get_ym_uid_cookie,
+    set_theme_ab_cookie,
     wait_ab_cookie,
 )
 from helpers.allure_attachments import attach_json
@@ -15,8 +16,10 @@ pytestmark = [pytest.mark.e2e, pytest.mark.ab_cookie]
 def test_ab_cookie_assigned_on_clean_context(site_url_case, page, context, site_config_map):
     site_config = site_config_map[site_url_case.site]
     landing = LandingPage(page, site_config)
+    target_url = site_config.urls[site_url_case.url_type]
 
     assert_ab_cookie_absent(context)
+    set_theme_ab_cookie(context, target_url, "a")
     landing.open(site_url_case.url_type)
     variant = wait_ab_cookie(context)
     assert variant in {"A", "B"}
@@ -35,7 +38,9 @@ def test_ab_cookie_assigned_on_clean_context(site_url_case, page, context, site_
 def test_ab_cookie_persists_after_reload(site_url_case, page, context, site_config_map):
     site_config = site_config_map[site_url_case.site]
     landing = LandingPage(page, site_config)
+    target_url = site_config.urls[site_url_case.url_type]
 
+    set_theme_ab_cookie(context, target_url, "a")
     landing.open(site_url_case.url_type)
     initial_variant = wait_ab_cookie(context)
     page.reload(wait_until="domcontentloaded")
