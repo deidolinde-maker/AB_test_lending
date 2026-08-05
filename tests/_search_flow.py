@@ -11,6 +11,7 @@ from helpers.ab_cookie import (
     get_ym_uid_cookie,
     set_ab_cookie,
     set_theme_ab_cookie,
+    set_wp_theme_ab_cookie,
     wait_ab_cookie,
 )
 from helpers.allure_attachments import attach_json, attach_png_file, attach_text
@@ -61,6 +62,8 @@ def run_search_case(
     )
 
     try:
+        if case.site == "stage_project":
+            set_wp_theme_ab_cookie(context, target_url, "A")
         set_theme_ab_cookie(context, target_url, "a")
         set_ab_cookie(context, target_url, case.variant)
         recorder.start()
@@ -167,6 +170,8 @@ def run_regional_navigation_case(
     tmp_path: Path,
 ) -> None:
     target_url = site_config.urls[navigation_case.start_url_type]
+    if navigation_case.site == "stage_project":
+        set_wp_theme_ab_cookie(context, target_url, "A")
     set_theme_ab_cookie(context, target_url, "a")
     set_ab_cookie(context, target_url, navigation_case.variant)
 
@@ -279,6 +284,8 @@ def run_negative_search_case(
     target_url = site_config.urls[case.url_type]
 
     try:
+        if case.site == "stage_project":
+            set_wp_theme_ab_cookie(context, target_url, "A")
         set_theme_ab_cookie(context, target_url, "a")
         set_ab_cookie(context, target_url, case.variant)
         recorder.start()

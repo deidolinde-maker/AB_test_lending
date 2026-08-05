@@ -5,6 +5,7 @@ from typing import Literal
 
 AB_COOKIE_NAME = "testNewAddressPoisk"
 THEME_AB_COOKIE_NAME = "theme_ab_variant"
+WP_THEME_AB_COOKIE_NAME = "AB_wp_theme_variant"
 YM_UID_COOKIE_NAME = "_ym_uid"
 
 
@@ -48,6 +49,18 @@ def set_theme_ab_cookie(context, url: str, value: str = "a") -> None:
         [
             {
                 "name": THEME_AB_COOKIE_NAME,
+                "value": value,
+                "url": url,
+            }
+        ]
+    )
+
+
+def set_wp_theme_ab_cookie(context, url: str, value: str = "A") -> None:
+    context.add_cookies(
+        [
+            {
+                "name": WP_THEME_AB_COOKIE_NAME,
                 "value": value,
                 "url": url,
             }
