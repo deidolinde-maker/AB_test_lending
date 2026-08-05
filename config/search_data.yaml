@@ -48,7 +48,7 @@ addresses:
     address_source: "v2"
     region: "Москва"
     region_id: 77
-    expected_locality_id: 16
+    expected_locality_id: 103
     expected_locality_name: "п Коммунарка"
     street_query: "Липовый парк"
     expected_street: "Липовый парк"
@@ -57,14 +57,14 @@ addresses:
     expected_id: 3633
     expected_id_type: "house_id"
     is_adjacent: false
-    notes: "v2 Москва: округ Новомосковский, Коммунарка, ул. Липовый парк, д. 2"
+    notes: "stage v3: region 77, locality 103 (п Коммунарка), street 590 «Липовый парк, ул», house 2. Prod v2 locality_id was 16."
 
   - case_id: "B_mo_domodedovo_kolomiytsa"
     variant: "B"
     address_source: "v2"
     region: "Домодедово"
     region_id: 50
-    expected_locality_id: 26
+    expected_locality_id: 110
     expected_locality_name: "мкр Центральный"
     street_query: "Коломийца"
     expected_street: "Коломийца"
@@ -73,7 +73,7 @@ addresses:
     expected_id: 3627
     expected_id_type: "house_id"
     is_adjacent: false
-    notes: "v2 Московская область: ул. Коломийца, д. 8/1, Домодедово"
+    notes: "stage v3: region 50 + locality 110 (мкр Центральный), street 587 «Коломийца, ул», house 8/1. Field region stays as Домодедово for selector compatibility; Prod v2 locality_id was 26."
 
   - case_id: "B_balashikha_chekhova"
     variant: "B"
@@ -102,6 +102,7 @@ forbidden_region_cases:
     expected_id: 522245
     expected_id_type: "address_id"
     expected_result: "not_found"
+    notes: "Prod v1 shows this address exists and has provider 1570. Current not_found wording does not match the data snapshot and needs a separate decision on what negative condition we want."
 
   - case_id: "forbidden_B_petrozavodsk_tapiola"
     variant: "B"
@@ -115,6 +116,7 @@ forbidden_region_cases:
     expected_id: 3465
     expected_id_type: "house_id"
     expected_result: "not_found"
+    notes: "Stage v3 shows this address exists. The negative condition here should be about provider_address_v2 links, not address absence."
 
 rules:
   variant_A:
