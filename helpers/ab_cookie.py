@@ -4,6 +4,12 @@ import time
 from typing import Literal
 
 AB_COOKIE_NAME = "testNewAddressPoisk"
+PROD_SITE_NAMES = {
+    "rt_internet_online",
+    "rtk_home_internet",
+    "rtk_home",
+    "rtk_ru_online",
+}
 YM_UID_COOKIE_NAME = "_ym_uid"
 
 
@@ -28,6 +34,10 @@ def get_ab_cookie(context) -> str | None:
         if cookie.get("name") == AB_COOKIE_NAME:
             return cookie.get("value")
     return None
+
+
+def should_seed_ab_cookie(site_name: str) -> bool:
+    return site_name not in PROD_SITE_NAMES
 
 
 def set_ab_cookie(context, url: str, variant: Literal["A", "B"]) -> None:

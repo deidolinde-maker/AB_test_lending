@@ -4,8 +4,7 @@ from helpers.ab_cookie import (
     assert_ab_cookie_absent,
     assert_ab_cookie_not_changed,
     get_ym_uid_cookie,
-    set_theme_ab_cookie,
-    set_wp_theme_ab_cookie,
+    should_seed_ab_cookie,
     wait_ab_cookie,
 )
 from helpers.allure_attachments import attach_json
@@ -20,9 +19,8 @@ def test_ab_cookie_assigned_on_clean_context(site_url_case, page, context, site_
     target_url = site_config.urls[site_url_case.url_type]
 
     assert_ab_cookie_absent(context)
-    if site_url_case.site == "stage_project":
-        set_wp_theme_ab_cookie(context, target_url, "A")
-    set_theme_ab_cookie(context, target_url, "a")
+    if should_seed_ab_cookie(site_url_case.site):
+        set_ab_cookie(context, target_url, site_url_case.variant)
     landing.open(site_url_case.url_type)
     variant = wait_ab_cookie(context)
     assert variant in {"A", "B"}
@@ -43,9 +41,8 @@ def test_ab_cookie_persists_after_reload(site_url_case, page, context, site_conf
     landing = LandingPage(page, site_config)
     target_url = site_config.urls[site_url_case.url_type]
 
-    if site_url_case.site == "stage_project":
-        set_wp_theme_ab_cookie(context, target_url, "A")
-    set_theme_ab_cookie(context, target_url, "a")
+    if should_seed_ab_cookie(site_url_case.site):
+        set_ab_cookie(context, target_url, site_url_case.variant)
     landing.open(site_url_case.url_type)
     initial_variant = wait_ab_cookie(context)
     page.reload(wait_until="domcontentloaded")
