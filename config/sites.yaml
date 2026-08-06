@@ -2,21 +2,21 @@ version: 1
 
 sites:
   mts_internet_online:
-    title: "МТС Интернет"
+    title: 'Сайт МТС'
     enabled: true
-    base_domain: "mts-internet.online"
+    base_domain: 'mts-internet.online'
 
     urls:
-      domain_without_region: "https://mts-internet.online/"
-      moscow_subdomain: "https://moskva.mts-internet.online/"
-      balashikha_folder: "https://mts-internet.online/balashiha"
-      domodedovo_folder: "https://mts-internet.online/domodedovo"
+      domain_without_region: 'https://mts-internet.online/'
+      moscow_subdomain: 'https://moskva.mts-internet.online/'
+      balashikha_folder: 'https://mts-internet.online/balashiha'
+      domodedovo_folder: 'https://mts-internet.online/domodedovo'
 
     expected_regions:
       domain_without_region: null
-      moscow_subdomain: "Москва"
-      balashikha_folder: "Балашиха"
-      domodedovo_folder: "Домодедово"
+      moscow_subdomain: 'Москва'
+      balashikha_folder: 'Балашиха'
+      domodedovo_folder: 'Домодедово'
 
     allowed_region_pool:
       - "Москва"
@@ -47,43 +47,43 @@ sites:
 
     regional_navigation_chain:
       - step: "open_without_region"
-        url_type: "domain_without_region"
-        expected_url: "https://mts-internet.online/"
+        url_type: 'domain_without_region'
+        expected_url: 'https://mts-internet.online/'
         expected_region: null
 
       - step: "go_to_moscow"
-        expected_url: "https://moskva.mts-internet.online/"
+        expected_url: 'https://moskva.mts-internet.online/'
         expected_region: "Москва"
 
       - step: "go_to_balashikha"
-        expected_url: "https://mts-internet.online/balashiha"
+        expected_url: 'https://mts-internet.online/balashiha'
         expected_region: "Балашиха"
 
       - step: "go_to_domodedovo"
-        expected_url: "https://mts-internet.online/domodedovo"
+        expected_url: 'https://mts-internet.online/domodedovo'
         expected_region: "Домодедово"
 
     notes:
-      - "Смена региона внутри формы не должна менять текущий URL страницы."
-      - "Региональная навигация страницы проверяется отдельным сценарием."
-      - "Для региональной навигации cookie testNewAddressPoisk не должна изменяться."
+      - "Переход между регионами идёт через смену URL-формата."
+      - "Доступные формы завязаны на текущий URL-тип."
+      - "Для submit-кейсов сначала выставляется cookie testNewAddressPoisk."
 
   stage_project:
-    title: "МТС Интернет stage"
+    title: 'Сайт МТС stage'
     enabled: true
-    base_domain: "stage-project.ru"
+    base_domain: 'stage-project.ru'
 
     urls:
-      domain_without_region: "https://stage-project.ru/"
-      moscow_subdomain: "https://moskva.stage-project.ru/"
-      balashikha_folder: "https://balashiha.stage-project.ru/"
-      domodedovo_folder: "https://domodedovo.stage-project.ru/"
+      domain_without_region: 'https://stage-project.ru/'
+      moscow_subdomain: 'https://moskva.stage-project.ru/'
+      balashikha_folder: 'https://balashiha.stage-project.ru/'
+      domodedovo_folder: 'https://domodedovo.stage-project.ru/'
 
     expected_regions:
-      domain_without_region: "Москва"
-      moscow_subdomain: "Москва"
-      balashikha_folder: "Балашиха"
-      domodedovo_folder: "Домодедово"
+      domain_without_region: 'Москва'
+      moscow_subdomain: 'Москва'
+      balashikha_folder: 'Балашиха'
+      domodedovo_folder: 'Домодедово'
 
     allowed_region_pool:
       - "Москва"
@@ -91,6 +91,9 @@ sites:
       - "Балашиха"
       - "Домодедово"
 
+    # Form requirement policy per landing URL type.
+    # If a form is listed here, its absence is treated as a failure even if form.optional=true.
+    # Forms not listed here follow forms.yaml optional flag.
     required_forms_by_url_type:
       domain_without_region:
         - "profit"
@@ -111,23 +114,291 @@ sites:
 
     regional_navigation_chain:
       - step: "open_without_region"
-        url_type: "domain_without_region"
-        expected_url: "https://stage-project.ru/"
-        expected_region: "Москва"
+        url_type: 'domain_without_region'
+        expected_url: 'https://stage-project.ru/'
+        expected_region: 'Москва'
 
       - step: "go_to_moscow"
-        expected_url: "https://moskva.stage-project.ru/"
+        expected_url: 'https://moskva.stage-project.ru/'
         expected_region: "Москва"
 
       - step: "go_to_balashikha"
-        expected_url: "https://balashiha.stage-project.ru/"
+        expected_url: 'https://balashiha.stage-project.ru/'
         expected_region: "Балашиха"
 
       - step: "go_to_domodedovo"
-        expected_url: "https://domodedovo.stage-project.ru/"
+        expected_url: 'https://domodedovo.stage-project.ru/'
         expected_region: "Домодедово"
 
     notes:
-      - "Смена региона внутри формы не должна менять текущий URL страницы."
-      - "Региональная навигация страницы проверяется отдельным сценарием."
-      - "Для региональной навигации cookie testNewAddressPoisk не должна изменяться."
+      - "Переход между регионами идёт через смену URL-формата."
+      - "Доступные формы завязаны на текущий URL-тип."
+      - "Для submit-кейсов сначала выставляется cookie testNewAddressPoisk."
+
+  rt_internet_online:
+    title: 'Ростелеком rt-internet.online'
+    enabled: true
+    base_domain: 'rt-internet.online'
+
+    urls:
+      domain_without_region: 'https://rt-internet.online/'
+      moscow_subdomain: 'https://rt-internet.online/moskva'
+      balashikha_folder: 'https://rt-internet.online/balashiha'
+      domodedovo_folder: 'https://rt-internet.online/domodedovo'
+
+    expected_regions:
+      domain_without_region: 'Москва'
+      moscow_subdomain: 'Москва'
+      balashikha_folder: 'Балашиха'
+      domodedovo_folder: 'Домодедово'
+
+    allowed_region_pool:
+      - "Москва"
+      - "Московская область"
+      - "Балашиха"
+      - "Домодедово"
+
+    # Form requirement policy per landing URL type.
+    # If a form is listed here, its absence is treated as a failure even if form.optional=true.
+    # Forms not listed here follow forms.yaml optional flag.
+    required_forms_by_url_type:
+      domain_without_region:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      moscow_subdomain:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      balashikha_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      domodedovo_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+
+    regional_navigation_chain:
+      - step: "open_without_region"
+        url_type: 'domain_without_region'
+        expected_url: 'https://rt-internet.online/'
+        expected_region: 'Москва'
+
+      - step: "go_to_moscow"
+        expected_url: 'https://rt-internet.online/moskva'
+        expected_region: "Москва"
+
+      - step: "go_to_balashikha"
+        expected_url: 'https://rt-internet.online/balashiha'
+        expected_region: "Балашиха"
+
+      - step: "go_to_domodedovo"
+        expected_url: 'https://rt-internet.online/domodedovo'
+        expected_region: "Домодедово"
+
+    notes:
+      - "Переход между регионами идёт через смену URL-формата."
+      - "Доступные формы завязаны на текущий URL-тип."
+      - "Для submit-кейсов сначала выставляется cookie testNewAddressPoisk."
+
+  rtk_home_internet:
+    title: 'Ростелеком rtk-home-internet.ru'
+    enabled: true
+    base_domain: 'rtk-home-internet.ru'
+
+    urls:
+      domain_without_region: 'https://rtk-home-internet.ru/'
+      moscow_subdomain: 'https://rtk-home-internet.ru/moskva'
+      balashikha_folder: 'https://rtk-home-internet.ru/balashiha'
+      domodedovo_folder: 'https://rtk-home-internet.ru/domodedovo'
+
+    expected_regions:
+      domain_without_region: 'Москва'
+      moscow_subdomain: 'Москва'
+      balashikha_folder: 'Балашиха'
+      domodedovo_folder: 'Домодедово'
+
+    allowed_region_pool:
+      - "Москва"
+      - "Московская область"
+      - "Балашиха"
+      - "Домодедово"
+
+    # Form requirement policy per landing URL type.
+    # If a form is listed here, its absence is treated as a failure even if form.optional=true.
+    # Forms not listed here follow forms.yaml optional flag.
+    required_forms_by_url_type:
+      domain_without_region:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      moscow_subdomain:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      balashikha_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      domodedovo_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+
+    regional_navigation_chain:
+      - step: "open_without_region"
+        url_type: 'domain_without_region'
+        expected_url: 'https://rtk-home-internet.ru/'
+        expected_region: 'Москва'
+
+      - step: "go_to_moscow"
+        expected_url: 'https://rtk-home-internet.ru/moskva'
+        expected_region: "Москва"
+
+      - step: "go_to_balashikha"
+        expected_url: 'https://rtk-home-internet.ru/balashiha'
+        expected_region: "Балашиха"
+
+      - step: "go_to_domodedovo"
+        expected_url: 'https://rtk-home-internet.ru/domodedovo'
+        expected_region: "Домодедово"
+
+    notes:
+      - "Переход между регионами идёт через смену URL-формата."
+      - "Доступные формы завязаны на текущий URL-тип."
+      - "Для submit-кейсов сначала выставляется cookie testNewAddressPoisk."
+
+  rtk_home:
+    title: 'Ростелеком rtk-home.ru'
+    enabled: true
+    base_domain: 'rtk-home.ru'
+
+    urls:
+      domain_without_region: 'http://rtk-home.ru/'
+      moscow_subdomain: 'http://rtk-home.ru/moskva'
+      balashikha_folder: 'http://rtk-home.ru/balashiha'
+      domodedovo_folder: 'http://rtk-home.ru/domodedovo'
+
+    expected_regions:
+      domain_without_region: 'Москва'
+      moscow_subdomain: 'Москва'
+      balashikha_folder: 'Балашиха'
+      domodedovo_folder: 'Домодедово'
+
+    allowed_region_pool:
+      - "Москва"
+      - "Московская область"
+      - "Балашиха"
+      - "Домодедово"
+
+    # Form requirement policy per landing URL type.
+    # If a form is listed here, its absence is treated as a failure even if form.optional=true.
+    # Forms not listed here follow forms.yaml optional flag.
+    required_forms_by_url_type:
+      domain_without_region:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      moscow_subdomain:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      balashikha_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      domodedovo_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+
+    regional_navigation_chain:
+      - step: "open_without_region"
+        url_type: 'domain_without_region'
+        expected_url: 'http://rtk-home.ru/'
+        expected_region: 'Москва'
+
+      - step: "go_to_moscow"
+        expected_url: 'http://rtk-home.ru/moskva'
+        expected_region: "Москва"
+
+      - step: "go_to_balashikha"
+        expected_url: 'http://rtk-home.ru/balashiha'
+        expected_region: "Балашиха"
+
+      - step: "go_to_domodedovo"
+        expected_url: 'http://rtk-home.ru/domodedovo'
+        expected_region: "Домодедово"
+
+    notes:
+      - "Переход между регионами идёт через смену URL-формата."
+      - "Доступные формы завязаны на текущий URL-тип."
+      - "Для submit-кейсов сначала выставляется cookie testNewAddressPoisk."
+
+  rtk_ru_online:
+    title: 'Ростелеком rtk-ru.online'
+    enabled: true
+    base_domain: 'rtk-ru.online'
+
+    urls:
+      domain_without_region: 'https://rtk-ru.online/'
+      moscow_subdomain: 'https://moskva.rtk-ru.online/'
+      balashikha_folder: 'https://rtk-ru.online/balashiha'
+      domodedovo_folder: 'https://rtk-ru.online/domodedovo'
+
+    expected_regions:
+      domain_without_region: 'Москва'
+      moscow_subdomain: 'Москва'
+      balashikha_folder: 'Балашиха'
+      domodedovo_folder: 'Домодедово'
+
+    allowed_region_pool:
+      - "Москва"
+      - "Московская область"
+      - "Балашиха"
+      - "Домодедово"
+
+    # Form requirement policy per landing URL type.
+    # If a form is listed here, its absence is treated as a failure even if form.optional=true.
+    # Forms not listed here follow forms.yaml optional flag.
+    required_forms_by_url_type:
+      domain_without_region:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      moscow_subdomain:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      balashikha_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+      domodedovo_folder:
+        - "profit"
+        - "connection"
+        - "checkaddress"
+
+    regional_navigation_chain:
+      - step: "open_without_region"
+        url_type: 'domain_without_region'
+        expected_url: 'https://rtk-ru.online/'
+        expected_region: 'Москва'
+
+      - step: "go_to_moscow"
+        expected_url: 'https://moskva.rtk-ru.online/'
+        expected_region: "Москва"
+
+      - step: "go_to_balashikha"
+        expected_url: 'https://rtk-ru.online/balashiha'
+        expected_region: "Балашиха"
+
+      - step: "go_to_domodedovo"
+        expected_url: 'https://rtk-ru.online/domodedovo'
+        expected_region: "Домодедово"
+
+    notes:
+      - "Переход между регионами идёт через смену URL-формата."
+      - "Доступные формы завязаны на текущий URL-тип."
+      - "Для submit-кейсов сначала выставляется cookie testNewAddressPoisk."

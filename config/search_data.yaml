@@ -13,7 +13,7 @@ addresses:
     expected_id: 35
     expected_id_type: "address_id"
     is_adjacent: false
-    notes: "v1 Москва: ул. Алабяна, д. 9/15, р-н Сокол"
+    notes: "prod v1: ул. Алабяна, д. 9/15, регион Сокол"
 
   - case_id: "A_mo_domodedovo_lomonosova"
     variant: "A"
@@ -27,7 +27,7 @@ addresses:
     expected_id: 39911
     expected_id_type: "address_id"
     is_adjacent: false
-    notes: "v1 Московская область: ул. Ломоносова, д. 24, Домодедово"
+    notes: "prod v1: ул. Ломоносова, д. 24, Домодедово"
 
   - case_id: "A_balashikha_ordzhonikidze"
     variant: "A"
@@ -41,39 +41,39 @@ addresses:
     expected_id: 122380
     expected_id_type: "address_id"
     is_adjacent: false
-    notes: "v1 Балашиха: ул. Орджоникидзе, д. 24"
+    notes: "prod v1: ул. Орджоникидзе, д. 24, Балашиха"
 
   - case_id: "B_moscow_lipovy_park"
     variant: "B"
     address_source: "v2"
     region: "Москва"
     region_id: 77
-    expected_locality_id: 103
+    expected_locality_id: 16
     expected_locality_name: "п Коммунарка"
     street_query: "Липовый парк"
     expected_street: "Липовый парк"
     house_query: "2"
     expected_house: "2"
-    expected_id: 3633
+    expected_id: 1067
     expected_id_type: "house_id"
     is_adjacent: false
-    notes: "stage v3: region 77, locality 103 (п Коммунарка), street 590 «Липовый парк, ул», house 2. Prod v2 locality_id was 16."
+    notes: "prod v2: region 77, locality 16 (п Коммунарка), street 168, house 2"
 
   - case_id: "B_mo_domodedovo_kolomiytsa"
     variant: "B"
     address_source: "v2"
     region: "Домодедово"
     region_id: 50
-    expected_locality_id: 110
+    expected_locality_id: 26
     expected_locality_name: "мкр Центральный"
     street_query: "Коломийца"
     expected_street: "Коломийца"
     house_query: "8/1"
     expected_house: "8/1"
-    expected_id: 3627
+    expected_id: 1075
     expected_id_type: "house_id"
     is_adjacent: false
-    notes: "stage v3: region 50 + locality 110 (мкр Центральный), street 587 «Коломийца, ул», house 8/1. Field region stays as Домодедово for selector compatibility; Prod v2 locality_id was 26."
+    notes: "prod v2: region 50, locality 26 (мкр Центральный), street 170, house 8/1"
 
   - case_id: "B_balashikha_chekhova"
     variant: "B"
@@ -84,10 +84,10 @@ addresses:
     expected_street: "Чехова"
     house_query: "10"
     expected_house: "10"
-    expected_id: 120991
+    expected_id: 101249
     expected_id_type: "house_id"
     is_adjacent: false
-    notes: "v2 Балашиха: ул. Чехова, д. 10"
+    notes: "prod v2: region 194, locality NULL, street 11000, house 10"
 
 forbidden_region_cases:
   - case_id: "forbidden_A_petrozavodsk_lisitsynoy"
@@ -99,10 +99,10 @@ forbidden_region_cases:
     expected_street: "Лисицыной"
     house_query: "9А"
     expected_house: "9А"
-    expected_id: 522245
+    expected_id: 2770178
     expected_id_type: "address_id"
     expected_result: "not_found"
-    notes: "Prod v1 shows this address exists and has provider 1570. Current not_found wording does not match the data snapshot and needs a separate decision on what negative condition we want."
+    notes: "Prod v1: адрес существует и имеет провайдера 1570. Негативный кейс должен проверять отсутствие провайдера, а не записи адреса."
 
   - case_id: "forbidden_B_petrozavodsk_tapiola"
     variant: "B"
@@ -113,10 +113,10 @@ forbidden_region_cases:
     expected_street: "Тапиола"
     house_query: "3"
     expected_house: "3"
-    expected_id: 3465
+    expected_id: 18984
     expected_id_type: "house_id"
     expected_result: "not_found"
-    notes: "Stage v3 shows this address exists. The negative condition here should be about provider_address_v2 links, not address absence."
+    notes: "Prod v2: адрес существует; негативный сценарий должен быть про provider_address_v2-связи."
 
 rules:
   variant_A:

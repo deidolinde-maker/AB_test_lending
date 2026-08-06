@@ -13,7 +13,7 @@ pipeline {
   }
 
   parameters {
-    choice(name: 'SITE', choices: ['mts_internet_online', 'stage_project'], description: 'Site key from config/sites.yaml')
+    choice(name: 'SITE', choices: ['mts_internet_online', 'stage_project', 'rt_internet_online', 'rtk_home_internet', 'rtk_home', 'rtk_ru_online'], description: 'Site key from config/sites.yaml')
     string(name: 'PYTEST_BIN', defaultValue: 'pytest', description: 'Pytest command (for example .venv/bin/pytest)')
     string(name: 'PYTHON_BIN', defaultValue: 'python3', description: 'Python command (for example .venv/bin/python)')
     choice(name: 'RUN_SUITE', choices: ['submit_matrix', 'form_matrix', 'dataset_suite', 'both', 'single_case'], description: 'Which suite to run. submit_matrix and form_matrix both run submit scenarios across all url types.')

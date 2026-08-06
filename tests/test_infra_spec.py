@@ -56,7 +56,7 @@ def test_b_search_cases_define_locality_context(loaded_config):
     cases = main_search_cases(loaded_config, "B")
     lipovy = next(case for case in cases if case.case_id == "B_moscow_lipovy_park")
     domodedovo = next(case for case in cases if case.case_id == "B_mo_domodedovo_kolomiytsa")
-    assert lipovy.expected_locality_id == 103
+    assert lipovy.expected_locality_id == 16
     assert lipovy.expected_locality_name == "п Коммунарка"
-    assert domodedovo.expected_locality_id == 110
+    assert domodedovo.expected_locality_id == 26
     assert domodedovo.expected_locality_name == "мкр Центральный"
