@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import os
 import time
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from helpers.selectors import candidate_selectors, first_selector
 from models import FormConfig
+
+try:
+    SUGGEST_WAIT_TIMEOUT_MS = int(os.getenv("SUGGEST_WAIT_TIMEOUT_MS", "1500"))
+except Exception:
+    SUGGEST_WAIT_TIMEOUT_MS = 1500
 
 
 class AddressForm:
@@ -217,7 +223,7 @@ class AddressForm:
         self._first_visible(selector).fill(value)
 
     def wait_street_suggest(self) -> None:
-        self.page.wait_for_timeout(600)
+        self.page.wait_for_timeout(SUGGEST_WAIT_TIMEOUT_MS)
 
     def _has_visible_text(self, text: str) -> bool:
         locator = self.page.get_by_text(text, exact=False)
@@ -268,14 +274,24 @@ class AddressForm:
     def _norm_text(value: str) -> str:
         return " ".join((value or "").strip().lower().replace("ё", "е").split())
 
+    @classmethod
+    def _strip_street_prefix(cls, value: str) -> str:
+        text = cls._norm_text(value)
+        for prefix in ("ул ", "ул.", "улица "):
+            if text.startswith(prefix):
+                return text[len(prefix) :].strip()
+        return text
+
     def _is_region_match(self, city_text: str, preferred_region: str | None) -> bool:
         if not preferred_region:
             return True
         return self._norm_text(preferred_region) in self._norm_text(city_text)
 
     def _is_strict_street_match(self, street_text: str, expected: str) -> bool:
-        st = self._norm_text(street_text)
-        exp = self._norm_text(expected)
+        st = self._strip_street_prefix(street_text)
+        exp = self._strip_street_prefix(expected)
+        if st == exp:
+            return True
         if not st.startswith(exp):
             return False
         suffix = st[len(exp):].strip()
@@ -308,8 +324,8 @@ class AddressForm:
         return rows
 
     def _street_rank(self, street_text: str, expected: str) -> tuple[int, int]:
-        st = self._norm_text(street_text)
-        exp = self._norm_text(expected)
+        st = self._strip_street_prefix(street_text)
+        exp = self._strip_street_prefix(expected)
         exact = 0 if st == exp or st in {f"{exp} ул", f"{exp} ул.", f"{exp} улица"} else 1
         return (exact, len(st))
 
@@ -548,7 +564,7 @@ class AddressForm:
         self._first_visible(selector).fill(value)
 
     def wait_house_suggest(self) -> None:
-        self.page.wait_for_timeout(600)
+        self.page.wait_for_timeout(SUGGEST_WAIT_TIMEOUT_MS)
 
     def assert_house_in_suggest(self, expected: str, timeout_ms: int = 8000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
