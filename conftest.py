@@ -1962,7 +1962,7 @@ def tele_two():
 @pytest.fixture(scope="session")
 def msk_rtk_online():
     """Базовый URL для тестов"""
-    return "https://serpukhov.rtk-ru.online/"
+    return "https://moskva.rtk-ru.online/"
 
 
 @pytest.fixture(scope="session")
@@ -1981,6 +1981,24 @@ def rtk_internet_online_ru():
 def rtk_home_internet_ru():
     """Базовый URL для тестов"""
     return "https://rtk-home-internet.ru/"
+
+
+@pytest.fixture(scope="session")
+def rtk_moskva_online():
+    """Базовый URL для тестов"""
+    return "https://moskva.rtk-ru.online/"
+
+
+@pytest.fixture(scope="session")
+def rtk_balashiha_online():
+    """Базовый URL для тестов"""
+    return "https://balashiha.rtk-ru.online/"
+
+
+@pytest.fixture(scope="session")
+def rtk_domodedovo_online():
+    """Базовый URL для тестов"""
+    return "https://domodedovo.rtk-ru.online/"
 
 
 @pytest.fixture(scope="session")
