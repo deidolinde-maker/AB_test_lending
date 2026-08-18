@@ -12,10 +12,22 @@ import hashlib
 from urllib.parse import urlparse
 from pathlib import Path
 from collections import defaultdict
+from dataclasses import replace
 from dotenv import load_dotenv
 import gspread
 from slugify import slugify
 from playwright.sync_api import sync_playwright, Error as PlaywrightError
+from helpers.config_loader import load_config
+from helpers.test_case_factory import (
+    ab_cookie_cases,
+    adjacent_cases,
+    forbidden_region_cases,
+    isolation_cases,
+    main_search_cases,
+    region_change_cases,
+    regional_navigation_cases,
+    synonym_cases,
+)
 # Загружаем переменные окружения из .env файла
 load_dotenv()
 
@@ -27,6 +39,21 @@ except Exception:
 
 # Хранилище метаданных по тестам для итогового отчета (title, description, feature/url)
 TEST_META = {}
+
+
+@pytest.fixture(scope="session")
+def loaded_config():
+    return load_config(Path(__file__).parent / "config")
+
+
+@pytest.fixture(scope="session")
+def site_config_map(loaded_config):
+    return {site.name: site for site in loaded_config.sites}
+
+
+@pytest.fixture(scope="session")
+def form_config_map(loaded_config):
+    return {form.name: form for form in loaded_config.forms}
 
 
 def pytest_addoption(parser):
@@ -1833,12 +1860,99 @@ def _resolve_path_from_env(env_name: str) -> str | None:
 
 
 
+def _loaded():
+    return load_config(Path(__file__).parent / "config")
+
+
+def _matches_filter(value: str | None, selected: str) -> bool:
+    if selected == "domain_without_region":
+        selected = "no_region"
+    if selected in {"all", "", None}:
+        return True
+    if value is None:
+        return False
+    return value == selected
+
+
+def _case_passes_cli(case, config) -> bool:
+    selected_site = config.getoption("--site")
+    selected_url_type = config.getoption("--url-type")
+    selected_variant = config.getoption("--variant")
+    selected_dataset = config.getoption("--dataset")
+    selected_form = config.getoption("--form")
+    selected_case_id = config.getoption("--case-id")
+
+    site_ok = _matches_filter(getattr(case, "site", None), selected_site)
+    url_ok = _matches_filter(getattr(case, "url_type", None), selected_url_type)
+    variant_ok = _matches_filter(getattr(case, "variant", None), selected_variant)
+    form_ok = _matches_filter(getattr(case, "form", None), selected_form)
+    case_id_ok = _matches_filter(getattr(case, "case_id", None), selected_case_id)
+
+    case_dataset = getattr(case, "dataset", None)
+    if selected_dataset in {"all", "", None}:
+        dataset_ok = True
+    elif case_dataset is None:
+        dataset_ok = True
+    else:
+        dataset_ok = _matches_filter(case_dataset, selected_dataset)
+
+    return site_ok and url_ok and variant_ok and form_ok and case_id_ok and dataset_ok
+
+
+def _case_ids(cases):
+    return [case.pytest_id for case in cases]
+
+
+def _form_open_smoke_cases(data):
+    rows = []
+    for variant in ("A", "B"):
+        for case in main_search_cases(data, variant):
+            rows.append(replace(case, dataset="form_open_smoke"))
+    return rows
+
+
 def pytest_generate_tests(metafunc):
-    """Хук генерации тестов (сейчас не используется для express_url; параметризация вынесена в fixture)."""
-    try:
+    data = _loaded()
+    cfg = metafunc.config
+    fn = metafunc.function.__name__
+
+    if "case" in metafunc.fixturenames:
+        if fn == "test_search_variant_a":
+            cases = main_search_cases(data, "A")
+        elif fn == "test_search_variant_b":
+            cases = main_search_cases(data, "B")
+        elif fn == "test_forbidden_region_address_not_found":
+            cases = forbidden_region_cases(data)
+        elif fn == "test_variant_a_does_not_find_v2_address":
+            cases = isolation_cases(data, "A")
+        elif fn == "test_variant_b_does_not_find_v1_address":
+            cases = isolation_cases(data, "B")
+        elif fn == "test_adjacent_search":
+            cases = adjacent_cases(data)
+        elif fn == "test_region_change_inside_form_does_not_change_url":
+            cases = region_change_cases(data)
+        elif fn == "test_form_open_smoke":
+            cases = _form_open_smoke_cases(data)
+        else:
+            cases = []
+        cases = [case for case in cases if _case_passes_cli(case, cfg)]
+        metafunc.parametrize("case", cases, ids=_case_ids(cases))
         return
-    except Exception:
-        pass
+
+    if "synonym_case" in metafunc.fixturenames:
+        cases = [case for case in synonym_cases(data) if _case_passes_cli(case, cfg)]
+        metafunc.parametrize("synonym_case", cases, ids=_case_ids(cases))
+        return
+
+    if "navigation_case" in metafunc.fixturenames:
+        cases = [case for case in regional_navigation_cases(data) if _case_passes_cli(case, cfg)]
+        metafunc.parametrize("navigation_case", cases, ids=_case_ids(cases))
+        return
+
+    if "site_url_case" in metafunc.fixturenames:
+        cases = [case for case in ab_cookie_cases(data) if _case_passes_cli(case, cfg)]
+        metafunc.parametrize("site_url_case", cases, ids=_case_ids(cases))
+        return
 
 @pytest.fixture(scope="session")
 def second_url():
