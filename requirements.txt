@@ -5,4 +5,5 @@ allure-pytest
 PyYAML
 pytest-xdist
 python-dotenv
+gspread
 
