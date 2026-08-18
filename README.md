@@ -1,217 +1,190 @@
-# AB_test_lending_e2e
+# lendings — автотесты форм/лендингов (Playwright + pytest)
 
-Автотесты первой итерации A/B-поиска адреса для лендингов (`v1` vs `v2`) с запуском в Jenkins и отчетами в Allure.
+Проект для UI‑проверок лендингов и отправки заявок, с Telegram‑уведомлениями и ежедневной сводкой.
 
-## Что проверяет проект
+## Быстрый старт
 
-- корректную установку и сохранение A/B cookie (`testNewAddressPoisk`);
-- сценарии поиска адреса по улицам/домам для вариантов `A` и `B`;
-- соответствие ожидаемого ID (`address_id` для `A`, `house_id` для `B`);
-- изоляцию старой/новой адрески;
-- смежные и запрещенные регионы;
-- смену региона внутри формы без смены URL;
-- региональную навигацию;
-- словарь синонимов;
-- отдельные технические проверки (`ab_cookie`).
+### 1) Установить зависимости
 
-Дополнительно поддерживается второй site scope для stage-площадок:
-
-- `stage_project`:
-  - `https://stage-project.ru/`;
-  - `https://moskva.stage-project.ru/`;
-  - `https://balashiha.stage-project.ru/`;
-  - `https://domodedovo.stage-project.ru/`.
-
-## Технологии
-
-- `pytest`
-- `pytest-playwright`
-- `playwright`
-- `allure-pytest`
-
-## Структура
-
-```text
-AB_test_lending_repo/
-  config/
-    sites.yaml
-    forms.yaml
-    search_data.yaml
-    synonyms.yaml
-  tests/
-    test_search_variant_a.py
-    test_search_variant_b.py
-    test_search_isolation.py
-    test_adjacent_search.py
-    test_forbidden_region.py
-    test_synonyms.py
-    test_region_change_inside_form.py
-    test_regional_navigation.py
-    test_ab_cookie.py
-  scripts/
-    run_form_matrix.sh
-    run_form_matrix_all.sh
-    run_dataset_suite.sh
-    summarize_form_matrix.py
-    summarize_dataset_suite.py
-  Jenkinsfile
-  conftest.py
-```
-
-## Датасеты
-
-Поддерживаемые датасеты:
-
-- `main_search`
-- `isolation`
-- `adjacent`
-- `forbidden_region`
-- `synonyms`
-- `region_change`
-- `regional_navigation`
-- `ab_cookie`
-
-Источник тестовых адресов и ожиданий: `config/search_data.yaml`.
-
-## Локальный запуск
-
-### 1) Установка
+Рекомендуется виртуальное окружение.
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-python -m playwright install chromium
+python -m pip install -r requirements.txt
 ```
 
-### 2) Базовые команды
+### 2) Запустить тесты
 
-Важно: e2e-сценарии запускаются с `--run-e2e`.
+Пример (параллельно):
 
 ```bash
-# A / main search
-pytest -q -s tests/test_search_variant_a.py::test_search_variant_a \
-  --run-e2e --site mts_internet_online --dataset main_search --variant A
-
-# B / main search
-pytest -q -s tests/test_search_variant_b.py::test_search_variant_b \
-  --run-e2e --site mts_internet_online --dataset main_search --variant B
-
-# Любой датасет через общий раннер
-bash scripts/run_dataset_suite.sh \
-  --site mts_internet_online \
-  --dataset-filter regional_navigation \
-  --url-type domain_without_region \
-  --variant all \
-  --form all \
-  --case-id all \
-  --python .venv/bin/python \
-  --pytest pytest \
-  --fail-on-test-failures false
+python -m pytest -n 2 -v
 ```
 
-### 3) Полезные фильтры
+Запуск конкретного теста по ключу:
 
-- `--dataset`: выбор датасета;
-- `--variant`: `all|A|B`;
-- `--url-type`: `all|domain_without_region|moscow_subdomain|balashikha_folder|domodedovo_folder`;
-- `--form`: `all|profit|connection|checkaddress|undecided|moving|express_connection`;
-- `--case-id`: конкретный кейс или `all`;
-- `--video-mode`: `off|on_failure|always` (по умолчанию `on_failure`).
+```bash
+python -m pytest -n 2 -v -k test_choose_region_perelinkovka
+```
+
+Запуск одного теста много раз подряд:
+
+- через плагин `pytest-repeat`:
+
+```bash
+python -m pip install pytest-repeat
+python -m pytest -n 2 -v -k test_choose_region_perelinkovka --count=20
+```
+
+## Allure
+
+Генерация результатов:
+
+```bash
+python -m pytest -n 2 -v --alluredir=allure-results
+```
+
+Если нужно не “падать” сборкой при фейлах (например, чтобы всё равно собрать отчёт):
+
+```bash
+python -m pytest -n 2 -v --alluredir=allure-results || true
+```
 
 ## Jenkins
 
-Pipeline описан в `Jenkinsfile` и рассчитан на Linux-агент.
+### Расписание (раз в 2 часа)
 
-### Параметры job
+В **Build periodically**:
 
-- `SITE` — сайт из `config/sites.yaml`.
-- `PYTEST_BIN` — команда pytest (по умолчанию `pytest`).
-- `PYTHON_BIN` — python (по умолчанию `python3`).
-- `RUN_SUITE` — `form_matrix | dataset_suite | both | single_case`.
-- `FAIL_ON_TEST_FAILURES` — фейлить build при падениях тестов.
-- `CASE_URL_TYPE` — для `RUN_SUITE=single_case`.
-- `CASE_VARIANT` — `all | A | B`.
-- `CASE_FORM` — `all | profit | connection | checkaddress | undecided | moving | express_connection`.
-- `CASE_DATASET` — один из датасетов.
-- `CASE_ID` — `all` или конкретный `case_id` из `search_data`.
-- `ENABLE_PERIODIC_ARTIFACT_PURGE` — включить периодическую очистку архивов.
-- `PERIODIC_PURGE_EVERY` — каждые N билдов (N >= 2).
+```text
+H */2 * * *
+```
 
-### Режимы запуска
+или строго в 00 минут:
 
-- `form_matrix` — прогон A/B по матрице форм и url_type.
-- `dataset_suite` — прогон всех датасетов.
-- `both` — оба режима подряд.
-- `single_case` — таргетированный запуск по фильтрам.
+```text
+0 */2 * * *
+```
 
-### Кэш и подготовка окружения
+### Важные переменные окружения
 
-- Python зависимости кэшируются в `/var/lib/jenkins/cache/pip`.
-- Playwright браузеры кэшируются в `/var/lib/jenkins/cache/ms-playwright`.
-- Переустановка зависимостей только при изменении `requirements.txt` (SHA-файл `.requirements.sha256`).
+#### Для параллельного запуска (`-n`)
 
-## Отчеты и артефакты
+- **`ALERTS_RUN_ID`** — строковый идентификатор прогона (нужен для дедупа при xdist).
+  - Рекомендуемо в Jenkins: `ALERTS_RUN_ID=$BUILD_ID` (или `$BUILD_NUMBER`).
 
-### Allure
+#### Куда писать состояние/счётчики алертов (межпрогонно)
 
-- Allure-results собираются в `artifacts/allure-results/...`.
-- В `post` шаге пайплайна результаты мерджатся в `artifacts/allure-results-merged`.
-- Отчет публикуется в Jenkins через плагин Allure.
+- **`ALERTS_STATE_PATH`** — путь к `alerts_state.json` (fixed/active состояние).
+- **`ERRORS_COUNT_PATH`** — путь к `errors_count.json` (накопительные повторы).
 
-### Сводки
+Пример для Jenkins (Linux):
 
-- Матрица форм:
-  - `artifacts/reports/<site>/<url_type>/form_matrix_summary.md`
-  - `artifacts/reports/<site>/_all_url_types_form_matrix_summary.md`
-- Датасеты:
-  - `artifacts/reports/<site>/datasets/<run_tag>/dataset_suite_summary.md`
+```text
+ALERTS_STATE_PATH=/var/lib/jenkins/alerts_state.json
+ERRORS_COUNT_PATH=/var/lib/jenkins/errors_count.json
+```
 
-### Мини-баг-репорт по кейсу
+#### Дедуп‑файлы для параллели
 
-Для упавших тестов автоматически формируется:
+- **`ALERTS_FLAG_DIR`** — базовая директория для run‑scoped флагов/логов.
+  - По умолчанию: `.alerts_flags`
 
-- текстовый attachment `mini_bug_report_ru_text` в Allure;
-- markdown-файл `mini_bug_report_ru` (attachment);
-- файл на диске: `artifacts/reports/cases/<pytest_nodeid>.md`.
+Внутри создаются:
+- `.alerts_flags/<ALERTS_RUN_ID>/*.flag` — флаги дедупа;
+- `.alerts_flags/<ALERTS_RUN_ID>/failed_tests/*.jsonl` — какие тесты реально падали (для fixed при xdist);
+- `.alerts_flags/<ALERTS_RUN_ID>/executed_tests/*.jsonl` — какие тесты выполнялись (чтобы не “фиксить” не запущенные тесты).
 
-Шаблон отчета:
+#### Ручная фиксация cookie для AB-ветки
 
-- Кейс
-- Шаги
-- Ожидаемый результат
-- Фактический результат
-- Описание бага
+Если нужно принудительно зафиксировать вариант до первого `page.goto`, можно задать cookie через переменные окружения:
 
-## Очистка и контроль объема
+```text
+COOKIE_OVERRIDES=testNewAddressPoisk=A;AB_wp_theme_variant=A
+```
 
-- Перед прогоном очищаются:
-  - `artifacts/allure-results`
-  - `artifacts/allure-results-merged`
-  - `artifacts/reports`
-- После прогона очищаются:
-  - `artifacts/videos`
-  - `.pytest_cache`
-  - `__pycache__`
-- Периодическая очистка Jenkins-архивов работает по параметрам purge.
+Поддерживаются и отдельные переменные:
+- `TESTNEWADDRESSPOISK_COOKIE_VALUE`
+- `AB_WP_THEME_VARIANT_COOKIE_VALUE`
+- `THEME_AB_VARIANT_COOKIE_VALUE`
 
-## Важные нюансы
+Значения `disabled`, `none`, `off`, `false`, `0` считаются пустыми и не проставляются.
 
-- Для `B` часть кейсов может падать из-за реального продуктового поведения (например, v1 endpoint вместо v2 или неожиданный регион в саджесте) — это фиксируется как валидный баг-сигнал.
-- `single_case` с `CASE_VARIANT=all` запускает оба варианта.
-- `CASE_FORM=all` запускает все формы, применимые для выбранного URL.
+## Telegram‑уведомления (алерты)
 
-## Быстрый smoke после изменений
+Логика реализована в `conftest.py`.
+
+### Transport: direct vs proxy
+
+- По умолчанию используется прямой транспорт (`BOT_TOKEN` + `CHAT_ID`).
+- Для переключения на proxy задайте:
+  - `USE_TELEGRAM_PROXY=true`
+  - `TELEGRAM_PROXY_URL`
+  - `TELEGRAM_PROXY_AUTH_SECRET`
+  - `TELEGRAM_PROXY_CREDS`
+- При `USE_TELEGRAM_PROXY=true` и отсутствии обязательных `TELEGRAM_PROXY_*`
+  выводится fail-fast сообщение в логи, без печати секретов.
+
+### Что считается “ошибкой” и “исправлением”
+
+- **Падение теста** → отправляется уведомление в TG по расписанию повторов (см. ниже).
+- **Исправление** → отправляется “✅ исправлена”, когда тест:
+  - выполнялся в текущем прогоне, и
+  - в текущем прогоне не упал,
+  - при этом в прошлых прогонах был активен (`active=true`).
+
+Ключ алертов/счётчиков — **уникальный `nodeid` теста**, чтобы одинаковые `@allure.title(...)` не склеивались.
+
+### Накопительный эффект (повторы)
+
+Накопительный счётчик ведётся в `errors_count.json` → `by_test[domain][nodeid]`.
+
+Уведомления по “повторам” шлются по расписанию:
+- 1‑й
+- 4‑й
+- 10‑й
+- далее каждый 10‑й (20, 30, 40, ...)
+
+После “✅ исправлена” счётчик по тесту **сбрасывается/удаляется**.
+
+### URL в алерте
+
+В сообщении показывается **URL, на котором упали** (приоритет):
+1) URL из текста ошибки (если Playwright указал target)
+2) наиболее “специфичный” URL из параметра теста / `page.url` (с путём/квери)
+3) URL из маркеров (`allure.feature(...)`) как фолбэк
+
+## Ежедневная/периодическая сводка (daily report)
+
+Скрипт: `tools/daily_report.py`
+
+- Источник данных: файл `.run_summaries.jsonl` (пишется в конце каждого прогона из `conftest.py`).
+- Период отчёта: **текущие сутки по МСК** (по умолчанию с `00:00 MSK` до текущего момента).
+- В отчёте добавляется строка `🗓 Период: ... (MSK)`.
+
+Если нужно сместить начало дня (например, с `01:00 MSK`), задайте:
+
+```text
+MSK_DAY_START_HOUR=1
+```
+
+Запуск вручную:
 
 ```bash
-bash scripts/run_dataset_suite.sh \
-  --site mts_internet_online \
-  --dataset-filter ab_cookie \
-  --url-type domain_without_region \
-  --variant all \
-  --form all \
-  --case-id all \
-  --python .venv/bin/python \
-  --pytest pytest \
-  --fail-on-test-failures false
+python tools/daily_report.py
 ```
+
+## Частые проблемы
+
+### `__main__.py: error: unrecognized arguments: -n`
+
+Опция `-n` требует плагин `pytest-xdist`.
+
+```bash
+python -m pip install pytest-xdist
+```
+
+### `@pytest.mark.skip(...)` всё равно “падает”
+
+Пропущенные тесты не должны попадать в алерты/таблицу как failed — эта защита встроена в `conftest.py`.
+
+# lendings

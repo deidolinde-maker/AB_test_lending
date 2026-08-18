@@ -10,6 +10,9 @@ PROD_SITE_NAMES = {
     "rtk_home",
     "rtk_ru_online",
 }
+FORCE_SEEDED_SITE_NAMES = {
+    "rtk_ru_online",
+}
 YM_UID_COOKIE_NAME = "_ym_uid"
 
 
@@ -37,7 +40,7 @@ def get_ab_cookie(context) -> str | None:
 
 
 def should_seed_ab_cookie(site_name: str) -> bool:
-    return site_name not in PROD_SITE_NAMES
+    return site_name in FORCE_SEEDED_SITE_NAMES or site_name not in PROD_SITE_NAMES
 
 
 def set_ab_cookie(context, url: str, variant: Literal["A", "B"]) -> None:
