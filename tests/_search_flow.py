@@ -7,6 +7,7 @@ from components.address_form import AddressForm
 from helpers.ab_cookie import (
     assert_ab_cookie_value,
     assert_ab_cookie_not_changed,
+    clear_ab_cookie,
     get_ab_cookie,
     get_ym_uid_cookie,
     set_ab_cookie,
@@ -22,10 +23,11 @@ from pages.landing_page import LandingPage
 def _seed_ab_cookie_with_reload(landing: LandingPage, page, context, open_target: str, cookie_url: str, variant: str) -> str:
     last_variant = None
     for attempt in range(2):
+        clear_ab_cookie(context)
         set_ab_cookie(context, cookie_url, variant)
         page.reload(wait_until="domcontentloaded")
         landing.dismiss_overlays()
-        last_variant = wait_ab_cookie(context)
+        last_variant = wait_ab_cookie(context, expected=variant)
         if last_variant == variant:
             return last_variant
         if attempt == 0:
@@ -84,6 +86,7 @@ def run_search_case(
         recorder.start()
         console.start()
 
+        clear_ab_cookie(context)
         landing.open(case.url_type)
         if should_seed_ab_cookie(case.site):
             _seed_ab_cookie_with_reload(landing, page, context, case.url_type, target_url, case.variant)
@@ -203,6 +206,7 @@ def run_regional_navigation_case(
     landing = LandingPage(page, site_config)
     form = AddressForm(page, form_config)
 
+    clear_ab_cookie(context)
     landing.open(navigation_case.start_url_type)
     if should_seed_ab_cookie(navigation_case.site):
         _seed_ab_cookie_with_reload(
@@ -213,7 +217,7 @@ def run_regional_navigation_case(
             target_url,
             navigation_case.variant,
         )
-    initial_variant = wait_ab_cookie(context)
+    initial_variant = wait_ab_cookie(context, expected=navigation_case.variant)
     assert initial_variant == navigation_case.variant, (
         f"Step: Start regional navigation\nExpected variant: {navigation_case.variant}\nActual: {initial_variant}"
     )
@@ -317,6 +321,7 @@ def run_negative_search_case(
         recorder.start()
         console.start()
 
+        clear_ab_cookie(context)
         landing.open(case.url_type)
         if should_seed_ab_cookie(case.site):
             _seed_ab_cookie_with_reload(landing, page, context, case.url_type, target_url, case.variant)

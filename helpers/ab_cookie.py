@@ -16,19 +16,37 @@ FORCE_SEEDED_SITE_NAMES = {
 YM_UID_COOKIE_NAME = "_ym_uid"
 
 
+def clear_ab_cookie(context) -> None:
+    try:
+        context.clear_cookies(name=AB_COOKIE_NAME)
+        return
+    except TypeError:
+        pass
+    except Exception:
+        pass
+    try:
+        context.clear_cookies()
+    except Exception:
+        pass
+
+
 def assert_ab_cookie_absent(context) -> None:
     cookie = get_ab_cookie(context)
     assert cookie is None, f"Expected {AB_COOKIE_NAME} cookie to be absent, but got: {cookie}"
 
 
-def wait_ab_cookie(context, timeout_ms: int = 10000) -> str:
+def wait_ab_cookie(context, timeout_ms: int = 10000, expected: Literal["A", "B"] | None = None) -> str:
     deadline = time.monotonic() + timeout_ms / 1000
     while time.monotonic() < deadline:
         cookie = get_ab_cookie(context)
-        if cookie in {"A", "B"}:
+        if cookie in {"A", "B"} and (expected is None or cookie == expected):
             return cookie
         time.sleep(0.2)
-    raise AssertionError(f"{AB_COOKIE_NAME} cookie was not assigned within {timeout_ms}ms")
+    if expected is None:
+        raise AssertionError(f"{AB_COOKIE_NAME} cookie was not assigned within {timeout_ms}ms")
+    raise AssertionError(
+        f"{AB_COOKIE_NAME} cookie did not become {expected} within {timeout_ms}ms"
+    )
 
 
 def get_ab_cookie(context) -> str | None:
@@ -44,6 +62,7 @@ def should_seed_ab_cookie(site_name: str) -> bool:
 
 
 def set_ab_cookie(context, url: str, variant: Literal["A", "B"]) -> None:
+    clear_ab_cookie(context)
     context.add_cookies(
         [
             {
@@ -56,7 +75,7 @@ def set_ab_cookie(context, url: str, variant: Literal["A", "B"]) -> None:
 
 
 def assert_ab_cookie_value(context, expected: Literal["A", "B"]) -> None:
-    actual = get_ab_cookie(context)
+    actual = wait_ab_cookie(context, expected=expected)
     assert actual == expected, f"Expected {AB_COOKIE_NAME}={expected}, got {actual}"
 
 
