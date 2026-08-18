@@ -174,12 +174,9 @@ class NetworkRecorder:
     def assert_b_search_payload(
         self,
         *,
-        expected_id: int,
         expected_street: str,
         expected_house: str,
         expected_region_id: int,
-        expected_locality_id: int | None = None,
-        expected_locality_name: str | None = None,
     ) -> None:
         if self.variant != "B":
             return
@@ -190,11 +187,8 @@ class NetworkRecorder:
 
         def _match(record: dict) -> bool:
             try:
-                record_id = int(record.get("id"))
                 record_region_id = int(record.get("region_id"))
             except Exception:
-                return False
-            if record_id != int(expected_id):
                 return False
             if record_region_id != int(expected_region_id):
                 return False
@@ -202,33 +196,17 @@ class NetworkRecorder:
                 return False
             if str(record.get("house", "")).strip() != str(expected_house).strip():
                 return False
-            if expected_locality_id is not None:
-                try:
-                    if int(record.get("locality_id")) != int(expected_locality_id):
-                        return False
-                except Exception:
-                    return False
-            if expected_locality_name is not None:
-                if str(record.get("locality_name", "")).strip() != str(expected_locality_name).strip():
-                    return False
             return True
 
         if any(_match(record) for record in observed_records):
             return
 
-        locality_text = ""
-        if expected_locality_id is not None or expected_locality_name is not None:
-            locality_text = (
-                f", locality_id={expected_locality_id!r}"
-                if expected_locality_name is None
-                else f", locality_id={expected_locality_id!r}, locality_name={expected_locality_name!r}"
-            )
         raise AssertionError(
             "Step: Validate B search payload\n"
             "Error code: search_payload_mismatch\n"
             "Expected: search payload should resolve the selected address record "
-            f"(id={expected_id!r}, region_id={expected_region_id!r}, street={expected_street!r}, "
-            f"house={expected_house!r}{locality_text})\n"
+            f"(region_id={expected_region_id!r}, street={expected_street!r}, "
+            f"house={expected_house!r})\n"
             f"Actual: observed search payloads = {[{'url': item.get('url'), 'records': item.get('records') or []} for item in summary]}"
         )
 

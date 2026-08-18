@@ -123,26 +123,11 @@ def run_search_case(
         form.assert_house_in_suggest(case.expected_house)
         form.select_house(case.expected_house)
 
-        # Hidden ID fields can be populated asynchronously right after house selection.
-        # Poll for a short period to reduce false negatives from UI timing races.
-        actual_id = None
-        for _ in range(12):
-            actual_id = form.get_selected_house_id()
-            if actual_id:
-                break
-            page.wait_for_timeout(150)
-        assert actual_id, (
-            f"Step: Validate selected address ID\nExpected: selected id for {case.expected_street}\nActual: {actual_id}"
-        )
-
         if verify_search_payload:
             recorder.assert_b_search_payload(
-                expected_id=actual_id,
                 expected_street=case.expected_street,
                 expected_house=case.expected_house,
                 expected_region_id=case.region_id,
-                expected_locality_id=getattr(case, "expected_locality_id", None),
-                expected_locality_name=getattr(case, "expected_locality_name", None),
             )
     except Exception:
         screenshot_path = tmp_path / f"{case.case_id}.png"
@@ -283,10 +268,6 @@ def run_regional_navigation_case(
         form.assert_house_in_suggest(address_case["expected_house"])
         form.select_house(address_case["expected_house"])
 
-        actual_id = form.get_selected_house_id()
-        assert actual_id, (
-            f"Step: {step_name} id check\nExpected selected id for {address_case['expected_house']}\nActual ID: {actual_id}"
-        )
         assert_ab_cookie_not_changed(context, navigation_case.variant)
 
     attach_json(

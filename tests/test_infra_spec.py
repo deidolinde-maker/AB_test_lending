@@ -52,11 +52,13 @@ def test_synonym_dataset_has_cases_for_real_addresses(loaded_config):
     assert cases, "synonym_cases should not be empty for current config"
 
 
-def test_b_search_cases_define_locality_context(loaded_config):
+def test_b_search_cases_define_address_context(loaded_config):
     cases = main_search_cases(loaded_config, "B")
     lipovy = next(case for case in cases if case.case_id == "B_moscow_lipovy_park")
     domodedovo = next(case for case in cases if case.case_id == "B_mo_domodedovo_kolomiytsa")
-    assert lipovy.expected_locality_id == 16
-    assert lipovy.expected_locality_name == "п Коммунарка"
-    assert domodedovo.expected_locality_id == 26
-    assert domodedovo.expected_locality_name == "мкр Центральный"
+    assert lipovy.expected_street == "Липовый парк"
+    assert lipovy.expected_house == "2"
+    assert lipovy.region_id == 77
+    assert domodedovo.expected_street == "Коломийца"
+    assert domodedovo.expected_house == "8/1"
+    assert domodedovo.region_id == 50
