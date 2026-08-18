@@ -28,6 +28,50 @@ except Exception:
 # Хранилище метаданных по тестам для итогового отчета (title, description, feature/url)
 TEST_META = {}
 
+
+def pytest_addoption(parser):
+    parser.addoption("--site", action="store", default="all")
+    parser.addoption("--url-type", action="store", default="all")
+    parser.addoption("--variant", action="store", default="all", choices=["all", "A", "B"])
+    parser.addoption(
+        "--dataset",
+        action="store",
+        default="submit_applications",
+        choices=[
+            "all",
+            "submit_applications",
+            "form_open_smoke",
+            "json_store_smoke",
+            "submit_success_marker_smoke",
+            "mini_bug_report_smoke",
+            "ab_cookie",
+            "forbidden_region",
+            "isolation",
+            "adjacent",
+            "region_change",
+            "synonyms",
+            "regional_navigation",
+        ],
+    )
+    parser.addoption("--form", action="store", default="all")
+    parser.addoption("--case-id", action="store", default="all")
+    parser.addoption("--run-e2e", action="store_true", default=False)
+    parser.addoption("--applications-json-path", action="store", default=None)
+    parser.addoption("--run-id", action="store", default=None)
+    parser.addoption("--build-number", action="store", default=None)
+    parser.addoption(
+        "--fail-on-missing-ym-uid",
+        action="store",
+        default=None,
+        choices=["true", "false"],
+    )
+    parser.addoption(
+        "--video-mode",
+        action="store",
+        default="on_failure",
+        choices=["off", "on_failure", "always"],
+    )
+
 # ==== Allure step tracking (capture last step name per test thread) ====
 _ORIGINAL_ALLURE_STEP = allure.step
 _TLS = threading.local()
