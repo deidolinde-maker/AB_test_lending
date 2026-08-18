@@ -16,9 +16,14 @@ from dotenv import load_dotenv
 import gspread
 from slugify import slugify
 from playwright.sync_api import sync_playwright, Error as PlaywrightError
-from config import bot, chat_id
 # Загружаем переменные окружения из .env файла
 load_dotenv()
+
+try:
+    from config import bot, chat_id
+except Exception:
+    bot = None
+    chat_id = None
 
 # Хранилище метаданных по тестам для итогового отчета (title, description, feature/url)
 TEST_META = {}
