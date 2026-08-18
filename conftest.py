@@ -63,10 +63,10 @@ def pytest_addoption(parser):
     parser.addoption(
         "--dataset",
         action="store",
-        default="submit_applications",
+        default="main_search",
         choices=[
             "all",
-            "submit_applications",
+            "main_search",
             "form_open_smoke",
             "json_store_smoke",
             "submit_success_marker_smoke",

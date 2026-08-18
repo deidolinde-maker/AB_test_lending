@@ -72,7 +72,7 @@ def _expand_across_dimensions(config: LoadedConfig, raw_cases: Iterable[dict], d
 
 def main_search_cases(config: LoadedConfig, variant: str) -> list[SearchCase]:
     raw_cases = _base_cases_for_variant(config, variant)
-    return _expand_across_dimensions(config, raw_cases, "submit_applications")
+    return _expand_across_dimensions(config, raw_cases, "main_search")
 
 
 def forbidden_region_cases(config: LoadedConfig, variant: str | None = None) -> list[SearchCase]:
