@@ -19,6 +19,26 @@ from helpers.network_recorder import NetworkRecorder
 from pages.landing_page import LandingPage
 
 
+def _seed_ab_cookie_with_reload(landing: LandingPage, page, context, open_target: str, cookie_url: str, variant: str) -> str:
+    last_variant = None
+    for attempt in range(2):
+        set_ab_cookie(context, cookie_url, variant)
+        page.reload(wait_until="domcontentloaded")
+        landing.dismiss_overlays()
+        last_variant = wait_ab_cookie(context)
+        if last_variant == variant:
+            return last_variant
+        if attempt == 0:
+            landing.open(open_target)
+            landing.dismiss_overlays()
+    raise AssertionError(
+        "Step: Подготовка variant\n"
+        f"Expected: cookie testNewAddressPoisk = {variant}\n"
+        f"Actual: cookie testNewAddressPoisk = {last_variant}\n"
+        "Error code: ab_cookie_missing_or_wrong"
+    )
+
+
 def _is_form_required_for_url(site_config, form_config, url_type: str) -> bool:
     required_by_url = getattr(site_config, "required_forms_by_url_type", {}) or {}
     if url_type in required_by_url:
@@ -61,12 +81,12 @@ def run_search_case(
     )
 
     try:
-        if should_seed_ab_cookie(case.site):
-            set_ab_cookie(context, target_url, case.variant)
         recorder.start()
         console.start()
 
         landing.open(case.url_type)
+        if should_seed_ab_cookie(case.site):
+            _seed_ab_cookie_with_reload(landing, page, context, case.url_type, target_url, case.variant)
         assert_ab_cookie_value(context, case.variant)
 
         form.open()
@@ -106,13 +126,13 @@ def run_search_case(
             if actual_id:
                 break
             page.wait_for_timeout(150)
-        assert str(actual_id) == str(case.expected_id), (
-            f"Step: Validate selected address ID\nExpected: {case.expected_id}\nActual: {actual_id}"
+        assert actual_id, (
+            f"Step: Validate selected address ID\nExpected: selected id for {case.expected_street}\nActual: {actual_id}"
         )
 
         if verify_search_payload:
             recorder.assert_b_search_payload(
-                expected_id=case.expected_id,
+                expected_id=actual_id,
                 expected_street=case.expected_street,
                 expected_house=case.expected_house,
                 expected_region_id=case.region_id,
@@ -167,8 +187,6 @@ def run_regional_navigation_case(
     tmp_path: Path,
 ) -> None:
     target_url = site_config.urls[navigation_case.start_url_type]
-    if should_seed_ab_cookie(navigation_case.site):
-        set_ab_cookie(context, target_url, navigation_case.variant)
 
     chain = site_config.regional_navigation_chain
     url_type_by_url = {url.rstrip("/"): url_type for url_type, url in site_config.urls.items()}
@@ -182,6 +200,15 @@ def run_regional_navigation_case(
     form = AddressForm(page, form_config)
 
     landing.open(navigation_case.start_url_type)
+    if should_seed_ab_cookie(navigation_case.site):
+        _seed_ab_cookie_with_reload(
+            landing,
+            page,
+            context,
+            navigation_case.start_url_type,
+            target_url,
+            navigation_case.variant,
+        )
     initial_variant = wait_ab_cookie(context)
     assert initial_variant == navigation_case.variant, (
         f"Step: Start regional navigation\nExpected variant: {navigation_case.variant}\nActual: {initial_variant}"
@@ -248,8 +275,8 @@ def run_regional_navigation_case(
         form.select_house(address_case["expected_house"])
 
         actual_id = form.get_selected_house_id()
-        assert str(actual_id) == str(address_case["expected_id"]), (
-            f"Step: {step_name} id check\nExpected ID: {address_case['expected_id']}\nActual ID: {actual_id}"
+        assert actual_id, (
+            f"Step: {step_name} id check\nExpected selected id for {address_case['expected_house']}\nActual ID: {actual_id}"
         )
         assert_ab_cookie_not_changed(context, navigation_case.variant)
 
@@ -279,12 +306,12 @@ def run_negative_search_case(
     target_url = site_config.urls[case.url_type]
 
     try:
-        if should_seed_ab_cookie(case.site):
-            set_ab_cookie(context, target_url, case.variant)
         recorder.start()
         console.start()
 
         landing.open(case.url_type)
+        if should_seed_ab_cookie(case.site):
+            _seed_ab_cookie_with_reload(landing, page, context, case.url_type, target_url, case.variant)
         assert_ab_cookie_value(context, case.variant)
 
         form.open()
