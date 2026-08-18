@@ -8,6 +8,28 @@ class LandingPage:
         self.page = page
         self.site_config = site_config
 
+    def dismiss_overlays(self) -> None:
+        candidates = [
+            "#cookieCloud button",
+            "#cookieCloud .btn",
+            ".cookie-cloud button",
+            "[id*='cookie'] button",
+            "[class*='cookie'] button",
+            "#popup-select-city .popup__close",
+            "#popup-select-city button",
+            ".modal__close",
+            ".popup__close",
+        ]
+        for selector in candidates:
+            locator = self.page.locator(selector).first
+            if locator.count() == 0:
+                continue
+            try:
+                locator.click(timeout=1200)
+                self.page.wait_for_timeout(150)
+            except Exception:
+                continue
+
     def open(self, url_type: str) -> None:
         self.page.goto(self.site_config.urls[url_type], wait_until="domcontentloaded")
 
