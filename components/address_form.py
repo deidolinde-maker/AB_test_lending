@@ -287,6 +287,13 @@ class AddressForm:
             return True
         return self._norm_text(preferred_region) in self._norm_text(city_text)
 
+    def _is_domodedovo_oblast_alias_match(self, city_text: str, preferred_region: str | None) -> bool:
+        if not preferred_region:
+            return False
+        preferred = self._norm_text(preferred_region)
+        city = self._norm_text(city_text)
+        return "домодедов" in preferred and "московская область" in city
+
     def _is_strict_street_match(self, street_text: str, expected: str) -> bool:
         st = self._strip_street_prefix(street_text)
         exp = self._strip_street_prefix(expected)
@@ -432,15 +439,26 @@ class AddressForm:
             # Fallback if suggestion rows are not visible as structured list.
             assert not self._has_visible_text(unexpected), f"Unexpected street in suggest: {unexpected}"
 
-    def select_street(self, expected: str, preferred_region: str | None = None) -> None:
+    def select_street(
+        self,
+        expected: str,
+        preferred_region: str | None = None,
+        allow_domodedovo_oblast_alias: bool = False,
+    ) -> None:
         self._last_selected_street = None
         street_rows = self._collect_street_rows()
         if street_rows:
             strict_rows = [row for row in street_rows if self._is_strict_street_match(row[1], expected)]
             if strict_rows:
-                region_rows = [
-                    row for row in strict_rows if self._is_region_match(row[2], preferred_region)
-                ]
+                region_rows = []
+                for row in strict_rows:
+                    if self._is_region_match(row[2], preferred_region):
+                        region_rows.append(row)
+                        continue
+                    if allow_domodedovo_oblast_alias and self._is_domodedovo_oblast_alias_match(
+                        row[2], preferred_region
+                    ):
+                        region_rows.append(row)
                 if preferred_region and not region_rows:
                     visible = self._collect_visible_suggest_items("#street-list")
                     strict_debug = [
@@ -526,7 +544,12 @@ class AddressForm:
                 street_input.press("ArrowDown")
                 street_input.press("Enter")
 
-    def try_select_street(self, expected: str, preferred_region: str | None = None) -> bool:
+    def try_select_street(
+        self,
+        expected: str,
+        preferred_region: str | None = None,
+        allow_domodedovo_oblast_alias: bool = False,
+    ) -> bool:
         self._last_selected_street = None
         street_rows = self._collect_street_rows()
         if not street_rows:
@@ -538,7 +561,15 @@ class AddressForm:
 
         candidate_pool = strict_rows
         if preferred_region:
-            region_rows = [row for row in strict_rows if self._is_region_match(row[2], preferred_region)]
+            region_rows = []
+            for row in strict_rows:
+                if self._is_region_match(row[2], preferred_region):
+                    region_rows.append(row)
+                    continue
+                if allow_domodedovo_oblast_alias and self._is_domodedovo_oblast_alias_match(
+                    row[2], preferred_region
+                ):
+                    region_rows.append(row)
             if not region_rows:
                 return False
             candidate_pool = region_rows
