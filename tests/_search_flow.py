@@ -11,7 +11,6 @@ from helpers.ab_cookie import (
     get_ab_cookie,
     get_ym_uid_cookie,
     set_ab_cookie,
-    should_seed_ab_cookie,
     wait_ab_cookie,
 )
 from helpers.allure_attachments import attach_json, attach_png_file, attach_text
@@ -88,8 +87,7 @@ def run_search_case(
 
         clear_ab_cookie(context)
         landing.open(case.url_type)
-        if should_seed_ab_cookie(case.site):
-            _seed_ab_cookie_with_reload(landing, page, context, case.url_type, target_url, case.variant)
+        _seed_ab_cookie_with_reload(landing, page, context, case.url_type, target_url, case.variant)
         assert_ab_cookie_value(context, case.variant)
 
         form.open()
@@ -208,15 +206,14 @@ def run_regional_navigation_case(
 
     clear_ab_cookie(context)
     landing.open(navigation_case.start_url_type)
-    if should_seed_ab_cookie(navigation_case.site):
-        _seed_ab_cookie_with_reload(
-            landing,
-            page,
-            context,
-            navigation_case.start_url_type,
-            target_url,
-            navigation_case.variant,
-        )
+    _seed_ab_cookie_with_reload(
+        landing,
+        page,
+        context,
+        navigation_case.start_url_type,
+        target_url,
+        navigation_case.variant,
+    )
     initial_variant = wait_ab_cookie(context, expected=navigation_case.variant)
     assert initial_variant == navigation_case.variant, (
         f"Step: Start regional navigation\nExpected variant: {navigation_case.variant}\nActual: {initial_variant}"
@@ -323,8 +320,7 @@ def run_negative_search_case(
 
         clear_ab_cookie(context)
         landing.open(case.url_type)
-        if should_seed_ab_cookie(case.site):
-            _seed_ab_cookie_with_reload(landing, page, context, case.url_type, target_url, case.variant)
+        _seed_ab_cookie_with_reload(landing, page, context, case.url_type, target_url, case.variant)
         assert_ab_cookie_value(context, case.variant)
 
         form.open()

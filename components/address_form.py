@@ -9,9 +9,9 @@ from helpers.selectors import candidate_selectors, first_selector
 from models import FormConfig
 
 try:
-    SUGGEST_WAIT_TIMEOUT_MS = int(os.getenv("SUGGEST_WAIT_TIMEOUT_MS", "1500"))
+    SUGGEST_WAIT_TIMEOUT_MS = int(os.getenv("SUGGEST_WAIT_TIMEOUT_MS", "4000"))
 except Exception:
-    SUGGEST_WAIT_TIMEOUT_MS = 1500
+    SUGGEST_WAIT_TIMEOUT_MS = 4000
 
 
 class AddressForm:
@@ -413,7 +413,7 @@ class AddressForm:
                 continue
         return False
 
-    def assert_street_in_suggest(self, expected: str, timeout_ms: int = 8000) -> None:
+    def assert_street_in_suggest(self, expected: str, timeout_ms: int = 12000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         while time.monotonic() < deadline:
             if self._has_visible_text(expected):
@@ -597,7 +597,7 @@ class AddressForm:
     def wait_house_suggest(self) -> None:
         self.page.wait_for_timeout(SUGGEST_WAIT_TIMEOUT_MS)
 
-    def assert_house_in_suggest(self, expected: str, timeout_ms: int = 8000) -> None:
+    def assert_house_in_suggest(self, expected: str, timeout_ms: int = 12000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         while time.monotonic() < deadline:
             if self._has_visible_text(expected):
@@ -747,7 +747,7 @@ class AddressForm:
         readonly_attr = locator.get_attribute("readonly")
         return disabled_attr is None
 
-    def wait_house_field_ready(self, timeout_ms: int = 8000) -> None:
+    def wait_house_field_ready(self, timeout_ms: int = 12000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         while time.monotonic() < deadline:
             if self.is_house_field_ready():

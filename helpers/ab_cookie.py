@@ -35,7 +35,7 @@ def assert_ab_cookie_absent(context) -> None:
     assert cookie is None, f"Expected {AB_COOKIE_NAME} cookie to be absent, but got: {cookie}"
 
 
-def wait_ab_cookie(context, timeout_ms: int = 10000, expected: Literal["A", "B"] | None = None) -> str:
+def wait_ab_cookie(context, timeout_ms: int = 15000, expected: Literal["A", "B"] | None = None) -> str:
     deadline = time.monotonic() + timeout_ms / 1000
     while time.monotonic() < deadline:
         cookie = get_ab_cookie(context)

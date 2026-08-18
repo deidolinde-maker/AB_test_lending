@@ -4,6 +4,7 @@ from helpers.ab_cookie import (
     assert_ab_cookie_absent,
     assert_ab_cookie_not_changed,
     get_ym_uid_cookie,
+    set_ab_cookie,
     should_seed_ab_cookie,
     wait_ab_cookie,
 )
