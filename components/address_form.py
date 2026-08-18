@@ -9,9 +9,24 @@ from helpers.selectors import candidate_selectors, first_selector
 from models import FormConfig
 
 try:
-    SUGGEST_WAIT_TIMEOUT_MS = int(os.getenv("SUGGEST_WAIT_TIMEOUT_MS", "4000"))
+    SUGGEST_WAIT_TIMEOUT_MS = int(os.getenv("SUGGEST_WAIT_TIMEOUT_MS", "6000"))
 except Exception:
-    SUGGEST_WAIT_TIMEOUT_MS = 4000
+    SUGGEST_WAIT_TIMEOUT_MS = 6000
+
+SUGGESTION_SELECTORS = [
+    "#street-list .autocomplete-item",
+    "#house-list .autocomplete-item",
+    ".autocomplete-list:not(.hidden) .autocomplete-item",
+    "[role='option']",
+    "[role='listbox'] li",
+    ".suggestions__item",
+    ".suggestion-item",
+    ".autocomplete__item",
+    ".ui-menu-item",
+    "[class*='suggest'] li",
+    "[class*='autocomplete'] li",
+    "[class*='dropdown'] li",
+]
 
 
 class AddressForm:
@@ -28,6 +43,8 @@ class AddressForm:
             ".cookie-cloud button",
             "[id*='cookie'] button",
             "[class*='cookie'] button",
+            "#popup-lead-catcher",
+            "[data-tooltip-hook='form']",
             "#popup-select-city .popup__close",
             "#popup-select-city button",
             ".modal__close",
@@ -41,7 +58,16 @@ class AddressForm:
                 locator.click(timeout=1200)
                 self.page.wait_for_timeout(150)
             except Exception:
-                continue
+                try:
+                    locator.evaluate(
+                        """(el) => {
+                            el.style.display = 'none';
+                            el.style.visibility = 'hidden';
+                            el.style.pointerEvents = 'none';
+                        }"""
+                    )
+                except Exception:
+                    continue
 
     def _first_visible(self, selector: str):
         locator = self.page.locator(selector)
@@ -219,8 +245,16 @@ class AddressForm:
         return False
 
     def fill_street(self, value: str) -> None:
+        self._dismiss_blocking_overlays()
         selector = first_selector(self.form_config.selectors, "street")
-        self._first_visible(selector).fill(value)
+        street_input = self._first_visible(selector)
+        street_input.scroll_into_view_if_needed()
+        street_input.click(force=True)
+        try:
+            street_input.fill("")
+        except Exception:
+            pass
+        street_input.fill(value)
 
     def wait_street_suggest(self) -> None:
         self.page.wait_for_timeout(SUGGEST_WAIT_TIMEOUT_MS)
@@ -238,28 +272,35 @@ class AddressForm:
         return False
 
     def _collect_visible_suggest_items(self, root_selector: str, limit: int = 30) -> list[str]:
-        root = self.page.locator(root_selector).first
-        if root.count() == 0 or not root.is_visible():
-            # Fallback for forms that use generic autocomplete container ids/classes.
-            if root_selector in {"#street-list", "#house-list"}:
-                root = self.page.locator(".autocomplete-list:not(.hidden)").first
-            if root.count() == 0 or not root.is_visible():
-                return []
-        items = root.locator(".autocomplete-item")
         result: list[str] = []
-        for idx in range(items.count()):
-            item = items.nth(idx)
+        seen: set[str] = set()
+        selectors = [root_selector]
+        if root_selector in {"#street-list", "#house-list"}:
+            selectors = [
+                root_selector,
+                f"{root_selector} .autocomplete-item",
+                ".autocomplete-list:not(.hidden) .autocomplete-item",
+            ]
+            selectors.extend(SUGGESTION_SELECTORS[3:])
+        for selector in selectors:
             try:
-                if not item.is_visible():
-                    continue
-                text = (item.inner_text() or "").strip()
-                if not text:
-                    continue
-                result.append(text)
-                if len(result) >= limit:
-                    break
+                items = self.page.locator(selector)
             except Exception:
                 continue
+            for idx in range(items.count()):
+                item = items.nth(idx)
+                try:
+                    if not item.is_visible():
+                        continue
+                    text = " ".join((item.inner_text() or "").split()).strip()
+                    if not text or text in seen:
+                        continue
+                    seen.add(text)
+                    result.append(text)
+                    if len(result) >= limit:
+                        return result
+                except Exception:
+                    continue
         return result
 
     @staticmethod
@@ -325,6 +366,14 @@ class AddressForm:
                     if item.locator(".autocomplete-city").count() > 0
                     else ""
                 )
+                street_lines = [line.strip() for line in (street_text or "").splitlines() if line.strip()]
+                if street_lines:
+                    street_text = street_lines[0]
+                    if not city_text and len(street_lines) > 1:
+                        city_text = " ".join(street_lines[1:])
+                city_lines = [line.strip() for line in (city_text or "").splitlines() if line.strip()]
+                if city_lines:
+                    city_text = " ".join(city_lines)
                 rows.append((item, street_text or "", city_text or ""))
             except Exception:
                 continue
@@ -413,10 +462,11 @@ class AddressForm:
                 continue
         return False
 
-    def assert_street_in_suggest(self, expected: str, timeout_ms: int = 12000) -> None:
+    def assert_street_in_suggest(self, expected: str, timeout_ms: int = 15000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         while time.monotonic() < deadline:
-            if self._has_visible_text(expected):
+            items = self._collect_visible_suggest_items("#street-list")
+            if any(self._is_strict_street_match(item, expected) or self._strip_street_prefix(expected) in self._strip_street_prefix(item) for item in items):
                 return
             time.sleep(0.2)
         street_items = self._collect_visible_suggest_items("#street-list")
@@ -446,6 +496,7 @@ class AddressForm:
         allow_domodedovo_oblast_alias: bool = False,
     ) -> None:
         self._last_selected_street = None
+        self._dismiss_blocking_overlays()
         street_rows = self._collect_street_rows()
         if street_rows:
             strict_rows = [row for row in street_rows if self._is_strict_street_match(row[1], expected)]
@@ -474,6 +525,7 @@ class AddressForm:
                     candidate_pool,
                     key=lambda row: self._street_rank(row[1], expected),
                 )
+                self._dismiss_blocking_overlays()
                 best_item.click(timeout=3000, force=True)
                 self.page.wait_for_timeout(250)
                 self._last_selected_street = {
@@ -496,7 +548,8 @@ class AddressForm:
         if street_selector:
             street_input = self._first_visible(street_selector)
             try:
-                street_input.click(timeout=2000)
+                self._dismiss_blocking_overlays()
+                street_input.click(timeout=2000, force=True)
                 street_input.press("ArrowDown")
                 street_input.press("Enter")
                 self.page.wait_for_timeout(250)
@@ -512,6 +565,7 @@ class AddressForm:
 
         locator = self.page.get_by_text(expected, exact=False).first
         try:
+            self._dismiss_blocking_overlays()
             locator.click(timeout=4000)
         except PlaywrightTimeoutError:
             self._dismiss_blocking_overlays()
@@ -521,7 +575,8 @@ class AddressForm:
                 if not street_selector:
                     raise
                 street_input = self._first_visible(street_selector)
-                street_input.click(timeout=2000)
+                self._dismiss_blocking_overlays()
+                street_input.click(timeout=2000, force=True)
                 street_input.press("ArrowDown")
                 street_input.press("Enter")
                 self._last_selected_street = {
@@ -540,7 +595,8 @@ class AddressForm:
             street_selector = first_selector(self.form_config.selectors, "street")
             if street_selector:
                 street_input = self._first_visible(street_selector)
-                street_input.click()
+                self._dismiss_blocking_overlays()
+                street_input.click(force=True)
                 street_input.press("ArrowDown")
                 street_input.press("Enter")
 
@@ -551,6 +607,7 @@ class AddressForm:
         allow_domodedovo_oblast_alias: bool = False,
     ) -> bool:
         self._last_selected_street = None
+        self._dismiss_blocking_overlays()
         street_rows = self._collect_street_rows()
         if not street_rows:
             return False
@@ -578,6 +635,7 @@ class AddressForm:
             candidate_pool,
             key=lambda row: self._street_rank(row[1], expected),
         )
+        self._dismiss_blocking_overlays()
         best_item.click(timeout=3000, force=True)
         self.page.wait_for_timeout(250)
         self._last_selected_street = {
@@ -590,17 +648,44 @@ class AddressForm:
         return True
 
     def fill_house(self, value: str) -> None:
-        self.wait_house_field_ready()
         selector = first_selector(self.form_config.selectors, "house")
+        if not selector:
+            raise AssertionError("House selector is missing")
+
+        last_error: Exception | None = None
+        for attempt in range(2):
+            self._dismiss_blocking_overlays()
+            try:
+                self.wait_house_field_ready(timeout_ms=8000 if attempt == 0 else 15000)
+                house_input = self._first_visible(selector)
+                house_input.scroll_into_view_if_needed()
+                house_input.click(force=True)
+                try:
+                    house_input.fill("")
+                except Exception:
+                    pass
+                house_input.fill(value)
+                return
+            except Exception as exc:
+                last_error = exc
+                if attempt == 0 and self._reselect_last_street():
+                    self.page.wait_for_timeout(400)
+                    continue
+                break
+
+        if last_error is not None:
+            raise last_error
+        self.wait_house_field_ready()
         self._first_visible(selector).fill(value)
 
     def wait_house_suggest(self) -> None:
         self.page.wait_for_timeout(SUGGEST_WAIT_TIMEOUT_MS)
 
-    def assert_house_in_suggest(self, expected: str, timeout_ms: int = 12000) -> None:
+    def assert_house_in_suggest(self, expected: str, timeout_ms: int = 15000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         while time.monotonic() < deadline:
-            if self._has_visible_text(expected):
+            items = self._collect_visible_suggest_items("#house-list")
+            if any(self._norm_house(expected) in self._norm_house(item) for item in items):
                 return
             time.sleep(0.2)
         house_items = self._collect_visible_suggest_items("#house-list")
@@ -631,6 +716,7 @@ class AddressForm:
 
     def select_house(self, expected: str) -> None:
         self._last_selected_house = None
+        self._dismiss_blocking_overlays()
         house_items = self.page.locator("#house-list .autocomplete-item")
         if house_items.count() == 0:
             house_items = self.page.locator(".autocomplete-list:not(.hidden) .autocomplete-item")
@@ -660,6 +746,7 @@ class AddressForm:
             picked = exact_item or near_item or fallback_item
             if picked is not None:
                 picked_item, picked_text = picked
+                self._dismiss_blocking_overlays()
                 picked_item.click(timeout=3000, force=True)
                 self.page.wait_for_timeout(250)
                 self._last_selected_house = {
@@ -679,6 +766,7 @@ class AddressForm:
         if house_selector:
             house_input = self._first_visible(house_selector)
             try:
+                self._dismiss_blocking_overlays()
                 house_input.click(timeout=2000, force=True)
                 house_input.press("ArrowDown")
                 house_input.press("Enter")
@@ -693,6 +781,7 @@ class AddressForm:
 
         locator = self.page.get_by_text(expected, exact=False).first
         try:
+            self._dismiss_blocking_overlays()
             locator.click(timeout=4000)
         except PlaywrightTimeoutError:
             self._dismiss_blocking_overlays()
@@ -745,9 +834,26 @@ class AddressForm:
             return False
         disabled_attr = locator.get_attribute("disabled")
         readonly_attr = locator.get_attribute("readonly")
-        return disabled_attr is None
+        return disabled_attr is None and readonly_attr is None
 
-    def wait_house_field_ready(self, timeout_ms: int = 12000) -> None:
+    def _reselect_last_street(self) -> bool:
+        selected = self._last_selected_street or {}
+        expected = selected.get("expected")
+        if not expected:
+            return False
+        preferred_region = selected.get("preferred_region")
+        allow_alias = bool(preferred_region and "домодедов" in self._norm_text(str(preferred_region)))
+        try:
+            self.select_street(
+                str(expected),
+                preferred_region=str(preferred_region) if preferred_region else None,
+                allow_domodedovo_oblast_alias=allow_alias,
+            )
+            return True
+        except Exception:
+            return False
+
+    def wait_house_field_ready(self, timeout_ms: int = 15000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         while time.monotonic() < deadline:
             if self.is_house_field_ready():

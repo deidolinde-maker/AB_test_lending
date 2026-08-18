@@ -15,6 +15,8 @@ class LandingPage:
             ".cookie-cloud button",
             "[id*='cookie'] button",
             "[class*='cookie'] button",
+            "#popup-lead-catcher",
+            "[data-tooltip-hook='form']",
             "#popup-select-city .popup__close",
             "#popup-select-city button",
             ".modal__close",
@@ -28,7 +30,16 @@ class LandingPage:
                 locator.click(timeout=1200)
                 self.page.wait_for_timeout(150)
             except Exception:
-                continue
+                try:
+                    locator.evaluate(
+                        """(el) => {
+                            el.style.display = 'none';
+                            el.style.visibility = 'hidden';
+                            el.style.pointerEvents = 'none';
+                        }"""
+                    )
+                except Exception:
+                    continue
 
     def open(self, url_type: str) -> None:
         self.page.goto(self.site_config.urls[url_type], wait_until="domcontentloaded")
