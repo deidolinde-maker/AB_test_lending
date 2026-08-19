@@ -13,6 +13,8 @@ try:
 except Exception:
     SUGGEST_WAIT_TIMEOUT_MS = 10000
 
+HOUSE_SUGGEST_WAIT_TIMEOUT_MS = max(SUGGEST_WAIT_TIMEOUT_MS, 15000)
+
 SUGGESTION_SELECTORS = [
     "#street-list .autocomplete-item",
     "#house-list .autocomplete-item",
@@ -679,6 +681,7 @@ class AddressForm:
                 except Exception:
                     pass
                 house_input.fill(value)
+                self.page.wait_for_timeout(400)
                 return
             except Exception as exc:
                 last_error = exc
@@ -693,7 +696,7 @@ class AddressForm:
         self._first_visible(selector).fill(value)
 
     def wait_house_suggest(self) -> None:
-        self._wait_for_visible_suggest_items("#house-list", timeout_ms=SUGGEST_WAIT_TIMEOUT_MS)
+        self._wait_for_visible_suggest_items("#house-list", timeout_ms=HOUSE_SUGGEST_WAIT_TIMEOUT_MS)
 
     def assert_house_in_suggest(self, expected: str, timeout_ms: int = 15000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
