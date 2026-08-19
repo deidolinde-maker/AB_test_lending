@@ -275,10 +275,10 @@ sites:
     base_domain: 'rtk-home.ru'
 
     urls:
-      domain_without_region: 'http://rtk-home.ru/'
-      moscow_subdomain: 'http://rtk-home.ru/moskva'
-      balashikha_folder: 'http://rtk-home.ru/balashiha'
-      domodedovo_folder: 'http://rtk-home.ru/domodedovo'
+      domain_without_region: 'https://rtk-home.ru/'
+      moscow_subdomain: 'https://rtk-home.ru/moskva'
+      balashikha_folder: 'https://rtk-home.ru/balashiha'
+      domodedovo_folder: 'https://rtk-home.ru/domodedovo'
 
     expected_regions:
       domain_without_region: 'Москва'
@@ -312,19 +312,19 @@ sites:
     regional_navigation_chain:
       - step: "open_without_region"
         url_type: 'domain_without_region'
-        expected_url: 'http://rtk-home.ru/'
+        expected_url: 'https://rtk-home.ru/'
         expected_region: 'Москва'
 
       - step: "go_to_moscow"
-        expected_url: 'http://rtk-home.ru/moskva'
+        expected_url: 'https://rtk-home.ru/moskva'
         expected_region: "Москва"
 
       - step: "go_to_balashikha"
-        expected_url: 'http://rtk-home.ru/balashiha'
+        expected_url: 'https://rtk-home.ru/balashiha'
         expected_region: "Балашиха"
 
       - step: "go_to_domodedovo"
-        expected_url: 'http://rtk-home.ru/domodedovo'
+        expected_url: 'https://rtk-home.ru/domodedovo'
         expected_region: "Домодедово"
 
     notes:
