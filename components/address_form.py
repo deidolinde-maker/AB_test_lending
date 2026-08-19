@@ -9,9 +9,9 @@ from helpers.selectors import candidate_selectors, first_selector
 from models import FormConfig
 
 try:
-    SUGGEST_WAIT_TIMEOUT_MS = int(os.getenv("SUGGEST_WAIT_TIMEOUT_MS", "6000"))
+    SUGGEST_WAIT_TIMEOUT_MS = int(os.getenv("SUGGEST_WAIT_TIMEOUT_MS", "10000"))
 except Exception:
-    SUGGEST_WAIT_TIMEOUT_MS = 6000
+    SUGGEST_WAIT_TIMEOUT_MS = 10000
 
 SUGGESTION_SELECTORS = [
     "#street-list .autocomplete-item",
@@ -257,7 +257,7 @@ class AddressForm:
         street_input.fill(value)
 
     def wait_street_suggest(self) -> None:
-        self.page.wait_for_timeout(SUGGEST_WAIT_TIMEOUT_MS)
+        self._wait_for_visible_suggest_items("#street-list", timeout_ms=SUGGEST_WAIT_TIMEOUT_MS)
 
     def _has_visible_text(self, text: str) -> bool:
         locator = self.page.get_by_text(text, exact=False)
@@ -302,6 +302,16 @@ class AddressForm:
                 except Exception:
                     continue
         return result
+
+    def _wait_for_visible_suggest_items(self, root_selector: str, timeout_ms: int) -> list[str]:
+        deadline = time.monotonic() + timeout_ms / 1000
+        last_items: list[str] = []
+        while time.monotonic() < deadline:
+            last_items = self._collect_visible_suggest_items(root_selector)
+            if last_items:
+                return last_items
+            time.sleep(0.3)
+        return last_items
 
     @staticmethod
     def _norm_house(value: str) -> str:
@@ -465,10 +475,14 @@ class AddressForm:
     def assert_street_in_suggest(self, expected: str, timeout_ms: int = 15000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         while time.monotonic() < deadline:
-            items = self._collect_visible_suggest_items("#street-list")
-            if any(self._is_strict_street_match(item, expected) or self._strip_street_prefix(expected) in self._strip_street_prefix(item) for item in items):
+            items = self._wait_for_visible_suggest_items("#street-list", timeout_ms=300)
+            if any(
+                self._is_strict_street_match(item, expected)
+                or self._strip_street_prefix(expected) in self._strip_street_prefix(item)
+                for item in items
+            ):
                 return
-            time.sleep(0.2)
+            time.sleep(0.3)
         street_items = self._collect_visible_suggest_items("#street-list")
         raise AssertionError(
             f"Expected street in suggest: {expected}. Visible street suggestions: {street_items}"
@@ -679,15 +693,15 @@ class AddressForm:
         self._first_visible(selector).fill(value)
 
     def wait_house_suggest(self) -> None:
-        self.page.wait_for_timeout(SUGGEST_WAIT_TIMEOUT_MS)
+        self._wait_for_visible_suggest_items("#house-list", timeout_ms=SUGGEST_WAIT_TIMEOUT_MS)
 
     def assert_house_in_suggest(self, expected: str, timeout_ms: int = 15000) -> None:
         deadline = time.monotonic() + timeout_ms / 1000
         while time.monotonic() < deadline:
-            items = self._collect_visible_suggest_items("#house-list")
+            items = self._wait_for_visible_suggest_items("#house-list", timeout_ms=300)
             if any(self._norm_house(expected) in self._norm_house(item) for item in items):
                 return
-            time.sleep(0.2)
+            time.sleep(0.3)
         house_items = self._collect_visible_suggest_items("#house-list")
         expected_norm = self._norm_house(expected)
         has_format_near_match = any(expected_norm in self._norm_house(item) for item in house_items)
