@@ -51,7 +51,9 @@ forms:
       open_from_cards:
         - ".connection_address_card_button"
       street: ".connection_address_street"
-      house: ".connection_address_house"
+      house:
+        - ".wpcf7-form-control.wpcf7-text.wpcf7-validates-as-required.popup__house.connection_address_house.test"
+        - ".connection_address_house"
       phone: ".connection_address_phone"
       submit: ".connection_address_button_send"
       change_city: ".connection_address_button_change_city"

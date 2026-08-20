@@ -94,6 +94,22 @@ class AddressForm:
             self._dismiss_blocking_overlays()
             locator.click(timeout=4000, force=True)
 
+    def _visible_selector_from_config(self, key: str) -> str | None:
+        for selector in candidate_selectors(self.form_config.selectors, key):
+            try:
+                locator = self.page.locator(selector)
+                count = locator.count()
+                for idx in range(count):
+                    candidate = locator.nth(idx)
+                    try:
+                        if candidate.is_visible():
+                            return selector
+                    except Exception:
+                        continue
+            except Exception:
+                continue
+        return first_selector(self.form_config.selectors, key)
+
     def open(self) -> None:
         self._dismiss_blocking_overlays()
         # Prefer inline form: if street input is already visible, do not open popup.
@@ -676,7 +692,7 @@ class AddressForm:
         return True
 
     def fill_house(self, value: str) -> None:
-        selector = first_selector(self.form_config.selectors, "house")
+        selector = self._visible_selector_from_config("house")
         if not selector:
             raise AssertionError("House selector is missing")
 
@@ -825,7 +841,7 @@ class AddressForm:
         }
 
     def get_selected_house_id(self) -> str | int | None:
-        house_selector = first_selector(self.form_config.selectors, "house")
+        house_selector = self._visible_selector_from_config("house")
         if not house_selector:
             return None
         house_locator = self._first_visible(house_selector)
@@ -894,7 +910,7 @@ class AddressForm:
         return None
 
     def is_house_field_ready(self) -> bool:
-        selector = first_selector(self.form_config.selectors, "house")
+        selector = self._visible_selector_from_config("house")
         if not selector:
             return False
         locator = self._first_visible(selector)
@@ -927,7 +943,7 @@ class AddressForm:
             if self.is_house_field_ready():
                 return
             time.sleep(0.2)
-        selector = first_selector(self.form_config.selectors, "house")
+        selector = self._visible_selector_from_config("house")
         attrs = {}
         if selector:
             locator = self._first_visible(selector)
