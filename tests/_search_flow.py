@@ -112,23 +112,41 @@ def run_search_case(
         form.fill_street(case.street_query)
         form.wait_street_suggest()
         form.assert_street_in_suggest(case.expected_street)
+        street_records: list[dict] = []
+        if verify_search_payload:
+            street_records = recorder.assert_b_street_payload(
+                expected_street=case.expected_street,
+                expected_region_id=case.region_id,
+            )
         form.select_street(
             case.expected_street,
             preferred_region=case.region,
             allow_domodedovo_oblast_alias=(case.variant == "B"),
         )
+        selected_street_id = form.get_selected_street_id()
+        if selected_street_id is None:
+            for record in street_records:
+                selected_street_id = record.get("street_id")
+                if selected_street_id is not None:
+                    break
 
         form.fill_house(case.house_query)
         form.wait_house_suggest()
         form.assert_house_in_suggest(case.expected_house)
-        form.select_house(case.expected_house)
-
         if verify_search_payload:
-            recorder.assert_b_search_payload(
-                expected_street=case.expected_street,
+            if selected_street_id is None:
+                raise AssertionError(
+                    "Step: Validate B house payload\n"
+                    "Error code: search_payload_mismatch\n"
+                    "Expected: selected street id should be present before validating house payload\n"
+                    f"Actual: street_id is missing for case {case.pytest_id}"
+                )
+            recorder.assert_b_house_payload(
                 expected_house=case.expected_house,
                 expected_region_id=case.region_id,
+                expected_street_id=selected_street_id,
             )
+        form.select_house(case.expected_house)
     except Exception:
         screenshot_path = tmp_path / f"{case.case_id}.png"
         page.screenshot(path=str(screenshot_path), full_page=True)

@@ -88,7 +88,12 @@ def _build_bug_report_row(row: DatasetResult) -> BugReportRow:
     message = row.message or ""
     case_name = _extract_case_name(row.name)
 
-    if "search_payload_mismatch" in message or "Validate B search payload" in message:
+    if (
+        "search_payload_mismatch" in message
+        or "Validate B search payload" in message
+        or "Validate B street payload" in message
+        or "Validate B house payload" in message
+    ):
         observed = ""
         m = re.search(r"Actual:\s*observed search payloads =\s*(.+)$", message, flags=re.S)
         if m:

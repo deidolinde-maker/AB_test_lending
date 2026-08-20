@@ -842,6 +842,41 @@ class AddressForm:
                 return value
         return None
 
+    def get_selected_street_id(self) -> str | int | None:
+        street_selector = first_selector(self.form_config.selectors, "street")
+        if not street_selector:
+            return None
+        street_locator = self._first_visible(street_selector)
+        if street_locator.count() == 0:
+            return None
+        for selector in (
+            "input[name='street_id']",
+            "input[name='IStreet']",
+            "input#id_street",
+        ):
+            try:
+                value = street_locator.evaluate(
+                    """(el, sel) => {
+                        const form = el.closest('form');
+                        if (!form) return null;
+                        const node = form.querySelector(sel);
+                        if (!node) return null;
+                        return node.value || null;
+                    }""",
+                    selector,
+                )
+            except Exception:
+                value = None
+            if value:
+                return value
+        try:
+            value = street_locator.get_attribute("data-street-id")
+        except Exception:
+            value = None
+        if value:
+            return value
+        return None
+
     def is_house_field_ready(self) -> bool:
         selector = first_selector(self.form_config.selectors, "house")
         if not selector:

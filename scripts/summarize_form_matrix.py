@@ -25,7 +25,12 @@ def _signature(message: str) -> str:
         return "HOUSE_FORMAT_MISMATCH"
     if "Validate selected address ID" in message:
         return "HOUSE_ID_MISMATCH"
-    if "search_payload_mismatch" in message or "Validate B search payload" in message:
+    if (
+        "search_payload_mismatch" in message
+        or "Validate B search payload" in message
+        or "Validate B street payload" in message
+        or "Validate B house payload" in message
+    ):
         return "B_SEARCH_PAYLOAD_MISMATCH"
     if "Expected streets request to hit v2 endpoint" in message:
         return "V2_STREETS_ENDPOINT_MISSING"
@@ -53,7 +58,12 @@ def _normalize_message(message: str) -> str:
 
 
 def _bug_details(message: str) -> tuple[str, str, str]:
-    if "search_payload_mismatch" in message or "Validate B search payload" in message:
+    if (
+        "search_payload_mismatch" in message
+        or "Validate B search payload" in message
+        or "Validate B street payload" in message
+        or "Validate B house payload" in message
+    ):
         m = re.search(r"Actual:\s*observed search payloads =\s*(.+)$", message, flags=re.S)
         observed = m.group(1).strip() if m else message.splitlines()[0]
         return (
