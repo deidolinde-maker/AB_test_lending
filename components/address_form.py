@@ -19,6 +19,9 @@ SUGGESTION_SELECTORS = [
     "#street-list .autocomplete-item",
     "#house-list .autocomplete-item",
     ".autocomplete-list:not(.hidden) .autocomplete-item",
+    ".autocomplete-list.checkaddress__item",
+    ".autocomplete-list.checkaddress__item .checkaddress__item",
+    ".autocomplete-list.checkaddress__item li",
     "[role='option']",
     "[role='listbox'] li",
     ".suggestions__item",
@@ -280,8 +283,13 @@ class AddressForm:
         if root_selector in {"#street-list", "#house-list"}:
             selectors = [
                 root_selector,
+                f"{root_selector}.checkaddress__item",
                 f"{root_selector} .autocomplete-item",
+                f"{root_selector} .checkaddress__item",
                 ".autocomplete-list:not(.hidden) .autocomplete-item",
+                ".autocomplete-list.checkaddress__item",
+                ".autocomplete-list.checkaddress__item .checkaddress__item",
+                ".autocomplete-list.checkaddress__item li",
             ]
             selectors.extend(SUGGESTION_SELECTORS[3:])
         for selector in selectors:
@@ -363,6 +371,10 @@ class AddressForm:
         street_items = self.page.locator("#street-list .autocomplete-item")
         if street_items.count() == 0:
             street_items = self.page.locator(".autocomplete-list:not(.hidden) .autocomplete-item")
+        if street_items.count() == 0:
+            street_items = self.page.locator(".autocomplete-list.checkaddress__item .checkaddress__item")
+        if street_items.count() == 0:
+            street_items = self.page.locator(".autocomplete-list.checkaddress__item li")
         for idx in range(street_items.count()):
             item = street_items.nth(idx)
             try:
@@ -737,6 +749,10 @@ class AddressForm:
         house_items = self.page.locator("#house-list .autocomplete-item")
         if house_items.count() == 0:
             house_items = self.page.locator(".autocomplete-list:not(.hidden) .autocomplete-item")
+        if house_items.count() == 0:
+            house_items = self.page.locator(".autocomplete-list.checkaddress__item .checkaddress__item")
+        if house_items.count() == 0:
+            house_items = self.page.locator(".autocomplete-list.checkaddress__item li")
         if house_items.count() > 0:
             expected_norm = self._norm_house(expected)
             exact_item = None
