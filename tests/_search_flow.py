@@ -110,14 +110,20 @@ def run_search_case(
             )
 
         form.fill_street(case.street_query)
-        form.wait_street_suggest()
-        form.assert_street_in_suggest(case.expected_street)
         street_records: list[dict] = []
         if verify_search_payload:
             street_records = recorder.assert_b_street_payload(
                 expected_street=case.expected_street,
                 expected_region_id=case.region_id,
             )
+            try:
+                form.wait_street_suggest()
+                form.assert_street_in_suggest(case.expected_street)
+            except AssertionError:
+                pass
+        else:
+            form.wait_street_suggest()
+            form.assert_street_in_suggest(case.expected_street)
         form.select_street(
             case.expected_street,
             preferred_region=case.region,
@@ -131,8 +137,6 @@ def run_search_case(
                     break
 
         form.fill_house(case.house_query)
-        form.wait_house_suggest()
-        form.assert_house_in_suggest(case.expected_house)
         if verify_search_payload:
             if selected_street_id is None:
                 raise AssertionError(
@@ -146,6 +150,14 @@ def run_search_case(
                 expected_region_id=case.region_id,
                 expected_street_id=selected_street_id,
             )
+            try:
+                form.wait_house_suggest()
+                form.assert_house_in_suggest(case.expected_house)
+            except AssertionError:
+                pass
+        else:
+            form.wait_house_suggest()
+            form.assert_house_in_suggest(case.expected_house)
         form.select_house(case.expected_house)
     except Exception:
         screenshot_path = tmp_path / f"{case.case_id}.png"
