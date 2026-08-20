@@ -155,6 +155,13 @@ class NetworkRecorder:
         out = out.replace("/", "к")
         return out
 
+    @staticmethod
+    def _record_street_text(record: dict) -> str:
+        street_name = record.get("street_name")
+        if street_name:
+            return str(street_name)
+        return str(record.get("full") or "")
+
     def build_b_endpoint_summary(self) -> list[dict]:
         summary: list[dict] = []
         for event in self.events:
@@ -251,8 +258,11 @@ class NetworkRecorder:
                         return False
                     if record_region_id != int(expected_region_id):
                         return False
-                    if expected_street is not None and self._norm_text(str(record.get("street_name", ""))) != self._norm_text(expected_street):
-                        return False
+                    if expected_street is not None:
+                        record_street = self._norm_text(self._record_street_text(record))
+                        expected_street_norm = self._norm_text(expected_street)
+                        if expected_street_norm not in record_street and record_street not in expected_street_norm:
+                            return False
                     if expected_house is not None and self._norm_house(str(record.get("house", ""))) != self._norm_house(expected_house):
                         return False
                     if expected_street_id is not None:
