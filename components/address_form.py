@@ -371,6 +371,55 @@ class AddressForm:
         city = self._norm_text(city_text)
         return "домодедов" in preferred and "московская область" in city
 
+    def _is_address_context_match(
+        self,
+        city_text: str,
+        preferred_region: str | None,
+        preferred_locality: str | None = None,
+        allow_domodedovo_oblast_alias: bool = False,
+    ) -> bool:
+        """Match the whole visible locality context, not only a region substring."""
+        if not preferred_region:
+            return True
+
+        normalized_city = self._norm_text(city_text)
+        normalized_region = self._norm_text(preferred_region)
+        normalized_locality = self._norm_text(preferred_locality or "")
+        parts = [part.strip() for part in normalized_city.split(",") if part.strip()]
+        address_parts = [
+            part
+            for part in parts
+            if not part.endswith((" область", " край", " республика"))
+        ]
+
+        def without_admin_prefix(value: str) -> str:
+            for prefix in ("г ", "город "):
+                if value.startswith(prefix):
+                    return value[len(prefix) :].strip()
+            return value
+
+        region_part_matches = any(
+            without_admin_prefix(part) == normalized_region for part in parts
+        )
+        if normalized_locality:
+            locality_matches = normalized_locality in normalized_city
+            return locality_matches and (
+                region_part_matches
+                or (
+                    allow_domodedovo_oblast_alias
+                    and self._is_domodedovo_oblast_alias_match(city_text, preferred_region)
+                )
+            )
+
+        # Reject a more specific alias such as "г Балашиха, мкр Саввино"
+        # when the case expects the city without an additional locality.
+        if region_part_matches:
+            return len(address_parts) == 1
+
+        return allow_domodedovo_oblast_alias and self._is_domodedovo_oblast_alias_match(
+            city_text, preferred_region
+        )
+
     def _is_strict_street_match(self, street_text: str, expected: str) -> bool:
         st = self._strip_street_prefix(street_text)
         exp = self._strip_street_prefix(expected)
@@ -537,6 +586,7 @@ class AddressForm:
         self,
         expected: str,
         preferred_region: str | None = None,
+        preferred_locality: str | None = None,
         allow_domodedovo_oblast_alias: bool = False,
     ) -> None:
         self._last_selected_street = None
@@ -547,7 +597,12 @@ class AddressForm:
             if strict_rows:
                 region_rows = []
                 for row in strict_rows:
-                    if self._is_region_match(row[2], preferred_region):
+                    if self._is_address_context_match(
+                        row[2],
+                        preferred_region,
+                        preferred_locality,
+                        allow_domodedovo_oblast_alias,
+                    ):
                         region_rows.append(row)
                         continue
                     if allow_domodedovo_oblast_alias and self._is_domodedovo_oblast_alias_match(
@@ -575,6 +630,7 @@ class AddressForm:
                 self._last_selected_street = {
                     "expected": expected,
                     "preferred_region": preferred_region,
+                    "preferred_locality": preferred_locality,
                     "selected_street": best_street,
                     "selected_city": best_city,
                     "strategy": "street_list_strict",
@@ -648,6 +704,7 @@ class AddressForm:
         self,
         expected: str,
         preferred_region: str | None = None,
+        preferred_locality: str | None = None,
         allow_domodedovo_oblast_alias: bool = False,
     ) -> bool:
         self._last_selected_street = None
@@ -664,7 +721,12 @@ class AddressForm:
         if preferred_region:
             region_rows = []
             for row in strict_rows:
-                if self._is_region_match(row[2], preferred_region):
+                if self._is_address_context_match(
+                    row[2],
+                    preferred_region,
+                    preferred_locality,
+                    allow_domodedovo_oblast_alias,
+                ):
                     region_rows.append(row)
                     continue
                 if allow_domodedovo_oblast_alias and self._is_domodedovo_oblast_alias_match(
@@ -685,6 +747,7 @@ class AddressForm:
         self._last_selected_street = {
             "expected": expected,
             "preferred_region": preferred_region,
+            "preferred_locality": preferred_locality,
             "selected_street": best_street,
             "selected_city": best_city,
             "strategy": "street_list_strict_try",
